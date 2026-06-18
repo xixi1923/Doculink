@@ -34,4 +34,13 @@ export const updateProfile = async (userData: any) => {
   return response.data
 }
 
+export const updateAvatar = async (formData: FormData) => {
+  const response = await api.post('/profile/avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+  return response.data
+}
+
 export default api

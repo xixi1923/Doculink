@@ -83,4 +83,45 @@ class AuthController extends Controller
             'user' => $user->loadCount(['followers', 'following', 'documents']),
         ]);
     }
+
+    public function updateAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $user = $request->user();
+
+        if ($request->hasFile('avatar')) {
+            // លុបរូបចាស់បើវាមាននៅលើ R2
+            if ($user->avatar) {
+                $oldPath = parse_url($user->avatar, PHP_URL_PATH);
+                $oldPath = ltrim($oldPath, '/');
+                if ($oldPath && \Illuminate\Support\Facades\Storage::disk('r2')->exists($oldPath)) {
+                    \Illuminate\Support\Facades\Storage::disk('r2')->delete($oldPath);
+                }
+            }
+
+            // បង្ហោះរូបថ្មីទៅកាន់ Cloudflare R2
+            $file = $request->file('avatar');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $path = 'avatars/' . $filename;
+
+            \Illuminate\Support\Facades\Storage::disk('r2')->put($path, file_get_contents($file));
+
+            // បង្កើត Public URL
+            $publicUrl = rtrim(config('filesystems.disks.r2.url'), '/') . '/' . $path;
+
+            $user->avatar = $publicUrl;
+            $user->save();
+
+            return response()->json([
+                'message' => 'Avatar updated successfully',
+                'url' => $publicUrl,
+                'user' => $user->loadCount(['followers', 'following', 'documents'])
+            ]);
+        }
+
+        return response()->json(['message' => 'No image file provided'], 400);
+    }
 }

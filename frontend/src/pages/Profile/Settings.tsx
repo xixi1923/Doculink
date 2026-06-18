@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   User,
   Bell,
@@ -11,7 +11,7 @@ import {
   Smartphone,
   Loader2
 } from 'lucide-react'
-import { getProfile, updateProfile } from '@/api/authApi'
+import { getProfile, updateProfile, updateAvatar } from '@/api/authApi'
 import { User as UserType } from '@/types'
 import { useAuthStore } from '@/store/authStore'
 
@@ -37,6 +37,7 @@ export default function Settings(): React.JSX.Element {
     university: '',
     major: ''
   })
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { setAuth, token } = useAuthStore()
 
@@ -78,6 +79,35 @@ export default function Settings(): React.JSX.Element {
       // Success feedback could be added here
     } catch (error) {
       console.error('Failed to update profile', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    setIsSaving(true)
+    try {
+      const response = await updateAvatar(formData)
+      const updatedUser = response.user
+      setProfile(prev => ({ ...prev, avatar: response.url }))
+      setImageError(false)
+
+      if (token) {
+        setAuth({
+          uid: updatedUser.id.toString(),
+          email: updatedUser.email,
+          displayName: updatedUser.name,
+          photoURL: response.url || null
+        }, token)
+      }
+    } catch (error) {
+      console.error('Failed to upload avatar', error)
     } finally {
       setIsSaving(false)
     }
@@ -162,10 +192,21 @@ export default function Settings(): React.JSX.Element {
                         )}
                       </div>
                       <div className="space-y-1.5">
-                        <button className="px-4 py-2 bg-teal-500 text-white text-[10px] font-extrabold uppercase tracking-wider rounded-xl hover:bg-teal-600 transition-all shadow-sm shadow-teal-500/10 hover:-translate-y-0.5">
-                          Change Avatar
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleAvatarChange}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isSaving}
+                          className="px-4 py-2 bg-teal-500 text-white text-[10px] font-extrabold uppercase tracking-wider rounded-xl hover:bg-teal-600 transition-all shadow-sm shadow-teal-500/10 hover:-translate-y-0.5 disabled:opacity-50"
+                        >
+                          {isSaving ? 'Uploading...' : 'Change Avatar'}
                         </button>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">JPG, GIF or PNG. Max size file allocation limit 800KB</p>
+                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">JPG, GIF or PNG. Max size file allocation limit 2MB</p>
                       </div>
                     </div>
 

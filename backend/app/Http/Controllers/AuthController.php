@@ -124,4 +124,45 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'No image file provided'], 400);
     }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'message' => 'Password បច្ចុប្បន្នមិនត្រឹមត្រូវទេ'
+            ], 422);
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json(['message' => 'ផ្លាស់ប្តូរ Password ជោគជ័យ!']);
+    }
+
+    public function deleteAccount(Request $request)
+    {
+        $user = $request->user();
+
+        // លុបរូបភាពចេញពី R2 បើមាន
+        if ($user->avatar) {
+            $oldPath = parse_url($user->avatar, PHP_URL_PATH);
+            $oldPath = ltrim($oldPath, '/');
+            if (\Illuminate\Support\Facades\Storage::disk('r2')->exists($oldPath)) {
+                \Illuminate\Support\Facades\Storage::disk('r2')->delete($oldPath);
+            }
+        }
+
+        // លុប Token ទាំងអស់ និងលុប User
+        $user->tokens()->delete();
+        $user->delete();
+
+        return response()->json(['message' => 'គណនីត្រូវបានលុបដោយជោគជ័យ']);
+    }
 }

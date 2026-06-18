@@ -43,4 +43,14 @@ export const updateAvatar = async (formData: FormData) => {
   return response.data
 }
 
+export const changePasswordApi = async (data: any) => {
+  const response = await api.post('/profile/change-password', data)
+  return response.data
+}
+
+export const deleteAccountApi = async () => {
+  const response = await api.delete('/profile')
+  return response.data
+}
+
 export default api

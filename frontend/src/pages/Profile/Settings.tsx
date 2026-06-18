@@ -11,7 +11,7 @@ import {
   Smartphone,
   Loader2
 } from 'lucide-react'
-import { getProfile, updateProfile, updateAvatar } from '@/api/authApi'
+import { getProfile, updateProfile, updateAvatar, changePasswordApi, deleteAccountApi } from '@/api/authApi'
 import { User as UserType } from '@/types'
 import { useAuthStore } from '@/store/authStore'
 
@@ -28,6 +28,7 @@ export default function Settings(): React.JSX.Element {
   const [activeSection, setActiveSection] = useState<SettingSection>('profile')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [profile, setProfile] = useState<Partial<UserType>>({
     name: '',
@@ -37,9 +38,21 @@ export default function Settings(): React.JSX.Element {
     university: '',
     major: ''
   })
+  const [passwordData, setPasswordData] = useState({
+    current_password: '',
+    new_password: '',
+    new_password_confirmation: ''
+  })
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [notifications, setNotifications] = useState({
+    peerReleases: true,
+    directComms: true,
+    diagnostics: false,
+    mentions: true
+  })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { setAuth, token } = useAuthStore()
+  const { setAuth, token, logout } = useAuthStore()
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -65,9 +78,21 @@ export default function Settings(): React.JSX.Element {
 
   const handleSave = async () => {
     setIsSaving(true)
+    setSaveSuccess(false)
     try {
       const response = await updateProfile(profile)
       const updatedUser = response.user
+
+      setProfile({
+        name: updatedUser.name || '',
+        email: updatedUser.email || '',
+        bio: updatedUser.bio || '',
+        school: updatedUser.school || '',
+        university: updatedUser.university || '',
+        major: updatedUser.major || '',
+        avatar: updatedUser.avatar || undefined
+      })
+
       if (token) {
         setAuth({
           uid: updatedUser.id.toString(),
@@ -76,9 +101,54 @@ export default function Settings(): React.JSX.Element {
           photoURL: updatedUser.avatar || null
         }, token)
       }
-      // Success feedback could be added here
+
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 3000)
     } catch (error) {
       console.error('Failed to update profile', error)
+      alert('មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (passwordData.new_password !== passwordData.new_password_confirmation) {
+      alert('Password ថ្មីមិនស៊ីគ្នាទេ!')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      await changePasswordApi(passwordData)
+      alert('Password ត្រូវបានផ្លាស់ប្តូរដោយជោគជ័យ!')
+      setPasswordData({
+        current_password: '',
+        new_password: '',
+        new_password_confirmation: ''
+      })
+      setIsChangingPassword(false)
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'ការប្តូរ Password បរាជ័យ!')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm('តើអ្នកពិតជាចង់លុបគណនីនេះមែនទេ? រាល់ទិន្នន័យទាំងអស់នឹងត្រូវបាត់បង់ជារៀងរហូត!')
+    if (!confirmed) return
+
+    setIsSaving(true)
+    try {
+      await deleteAccountApi()
+      alert('គណនីរបស់អ្នកត្រូវបានលុប!')
+      logout() // ចាកចេញពីកម្មវិធី
+      window.location.href = '/' // ត្រឡប់ទៅទំព័រដើម
+    } catch (error) {
+      console.error('Failed to delete account', error)
+      alert('ការលុបគណនីមានបញ្ហា!')
     } finally {
       setIsSaving(false)
     }
@@ -278,14 +348,20 @@ export default function Settings(): React.JSX.Element {
                   </div>
                 </section>
 
-                <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800/40">
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800/40">
+                   {saveSuccess && (
+                     <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest animate-pulse">
+                       ✓ Profile updated successfully
+                     </span>
+                   )}
+                   <div className="flex-grow"></div>
                    <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="px-6 py-2.5 bg-teal-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl hover:bg-teal-600 transition-all shadow-sm shadow-teal-500/10 hover:-translate-y-0.5 flex items-center gap-2"
+                    className="px-6 py-2.5 bg-[#0b1329] dark:bg-teal-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl hover:opacity-90 transition-all shadow-sm flex items-center gap-2"
                    >
                      {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                     Save Changes
+                     {isSaving ? 'Saving...' : 'Save Changes'}
                    </button>
                 </div>
               </div>
@@ -298,18 +374,73 @@ export default function Settings(): React.JSX.Element {
                   <h2 className="text-base font-black text-slate-900 dark:text-white mb-6">Security & Authentication</h2>
                   <div className="space-y-3">
 
-                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800/60 hover:border-teal-500/30 transition-all cursor-pointer group">
-                       <div className="flex items-center gap-3.5">
-                          <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl text-slate-400 group-hover:text-teal-500 transition-colors border border-slate-100 dark:border-slate-800">
-                             <Lock size={16} />
+                    {!isChangingPassword ? (
+                      <div
+                        onClick={() => setIsChangingPassword(true)}
+                        className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800/60 hover:border-teal-500/30 transition-all cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-3.5">
+                            <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl text-slate-400 group-hover:text-teal-500 transition-colors border border-slate-100 dark:border-slate-800">
+                              <Lock size={16} />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Change Master Password</h4>
+                              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Update your secure profile system access key</p>
+                            </div>
+                        </div>
+                        <ChevronRight size={14} className="text-slate-300 group-hover:translate-x-0.5 transition-transform" />
+                      </div>
+                    ) : (
+                      <form onSubmit={handleChangePassword} className="bg-slate-50 dark:bg-slate-950 p-6 rounded-2xl border border-teal-500/20 space-y-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Reset Access Key</h4>
+                          <button type="button" onClick={() => setIsChangingPassword(false)} className="text-[10px] text-slate-400 hover:text-rose-500 font-bold uppercase">Cancel</button>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Current Password</label>
+                          <input
+                            type="password"
+                            required
+                            value={passwordData.current_password}
+                            onChange={(e) => setPasswordData({...passwordData, current_password: e.target.value})}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2 text-xs outline-none focus:border-teal-500/50"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-0.5">New Password</label>
+                            <input
+                              type="password"
+                              required
+                              value={passwordData.new_password}
+                              onChange={(e) => setPasswordData({...passwordData, new_password: e.target.value})}
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2 text-xs outline-none focus:border-teal-500/50"
+                            />
                           </div>
-                          <div>
-                             <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Change Master Password</h4>
-                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Update your secure profile system access key</p>
+                          <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Confirm New Password</label>
+                            <input
+                              type="password"
+                              required
+                              value={passwordData.new_password_confirmation}
+                              onChange={(e) => setPasswordData({...passwordData, new_password_confirmation: e.target.value})}
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2 text-xs outline-none focus:border-teal-500/50"
+                            />
                           </div>
-                       </div>
-                       <ChevronRight size={14} className="text-slate-300 group-hover:translate-x-0.5 transition-transform" />
-                    </div>
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={isSaving}
+                          className="w-full py-2.5 bg-teal-500 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl hover:bg-teal-600 transition-all flex items-center justify-center gap-2"
+                        >
+                          {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                          Update Secure Password
+                        </button>
+                      </form>
+                    )}
 
                     <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800/60 hover:border-teal-500/30 transition-all cursor-pointer group">
                        <div className="flex items-center gap-3.5">
@@ -335,8 +466,13 @@ export default function Settings(): React.JSX.Element {
                            <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Deactivate Repository Account</h4>
                            <p className="text-[11px] text-slate-400 max-w-sm leading-relaxed font-light">Permanently clear out your cloud uploader record nodes and asset indices. This lifecycle operation is irreversible.</p>
                         </div>
-                        <button className="px-4 py-2.5 bg-rose-500 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl hover:bg-rose-600 transition-colors flex items-center gap-1.5 shrink-0 shadow-xs">
-                           <Trash2 size={14} /> Delete Account
+                        <button
+                          onClick={handleDeleteAccount}
+                          disabled={isSaving}
+                          className="px-4 py-2.5 bg-rose-500 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl hover:bg-rose-600 transition-colors flex items-center gap-1.5 shrink-0 shadow-xs disabled:opacity-50"
+                        >
+                           {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 size={14} />}
+                           Delete Account
                         </button>
                      </div>
                   </div>
@@ -351,12 +487,12 @@ export default function Settings(): React.JSX.Element {
                     <h2 className="text-base font-black text-slate-900 dark:text-white mb-6">Channel Preferences</h2>
                     <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
                        {[
-                         { title: 'Peer Material Releases', desc: 'Alert when contributors inside your active network log files' },
-                         { title: 'Direct Communications', desc: 'Ping alerts when peer inquiries route through internal discussions' },
-                         { title: 'DocuLink Network Diagnostics', desc: 'General patch updates regarding education schema additions' },
-                         { title: 'Workspace Mentions', desc: 'Receive instant feedback loops when your profile handle is cited' },
-                       ].map((item, idx) => (
-                         <div key={idx} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+                         { id: 'peerReleases', title: 'Peer Material Releases', desc: 'Alert when contributors inside your active network log files' },
+                         { id: 'directComms', title: 'Direct Communications', desc: 'Ping alerts when peer inquiries route through internal discussions' },
+                         { id: 'diagnostics', title: 'DocuLink Network Diagnostics', desc: 'General patch updates regarding education schema additions' },
+                         { id: 'mentions', title: 'Workspace Mentions', desc: 'Receive instant feedback loops when your profile handle is cited' },
+                       ].map((item) => (
+                         <div key={item.id} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
                             <div className="pr-4">
                                <h4 className="text-xs font-extrabold text-slate-900 dark:text-white leading-normal">{item.title}</h4>
                                <p className="text-[11px] text-slate-400 mt-0.5 font-light leading-normal">{item.desc}</p>
@@ -364,7 +500,12 @@ export default function Settings(): React.JSX.Element {
 
                             {/* Native Toggle Switch Container Framework */}
                             <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                              <input type="checkbox" className="sr-only peer" defaultChecked={idx < 2} />
+                              <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={(notifications as any)[item.id]}
+                                onChange={() => setNotifications(prev => ({ ...prev, [item.id]: !(prev as any)[item.id] }))}
+                              />
                               <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
                             </label>
                          </div>

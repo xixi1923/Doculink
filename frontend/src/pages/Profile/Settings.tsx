@@ -106,7 +106,7 @@ export default function Settings(): React.JSX.Element {
       setTimeout(() => setSaveSuccess(false), 3000)
     } catch (error) {
       console.error('Failed to update profile', error)
-      alert('មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!')
+      alert('There was a problem saving your data!')
     } finally {
       setIsSaving(false)
     }
@@ -115,14 +115,14 @@ export default function Settings(): React.JSX.Element {
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     if (passwordData.new_password !== passwordData.new_password_confirmation) {
-      alert('Password ថ្មីមិនស៊ីគ្នាទេ!')
+      alert('New passwords do not match!')
       return
     }
 
     setIsSaving(true)
     try {
       await changePasswordApi(passwordData)
-      alert('Password ត្រូវបានផ្លាស់ប្តូរដោយជោគជ័យ!')
+      alert('Password has been changed successfully!')
       setPasswordData({
         current_password: '',
         new_password: '',
@@ -130,25 +130,25 @@ export default function Settings(): React.JSX.Element {
       })
       setIsChangingPassword(false)
     } catch (error: any) {
-      alert(error.response?.data?.message || 'ការប្តូរ Password បរាជ័យ!')
+      alert(error.response?.data?.message || 'Password change failed!')
     } finally {
       setIsSaving(false)
     }
   }
 
   const handleDeleteAccount = async () => {
-    const confirmed = window.confirm('តើអ្នកពិតជាចង់លុបគណនីនេះមែនទេ? រាល់ទិន្នន័យទាំងអស់នឹងត្រូវបាត់បង់ជារៀងរហូត!')
+    const confirmed = window.confirm('Are you sure you want to delete this account? All data will be lost forever!')
     if (!confirmed) return
 
     setIsSaving(true)
     try {
       await deleteAccountApi()
-      alert('គណនីរបស់អ្នកត្រូវបានលុប!')
-      logout() // ចាកចេញពីកម្មវិធី
-      window.location.href = '/' // ត្រឡប់ទៅទំព័រដើម
+      alert('Your account has been deleted!')
+      logout() // Exit the app
+      window.location.href = '/' // Return to home page
     } catch (error) {
       console.error('Failed to delete account', error)
-      alert('ការលុបគណនីមានបញ្ហា!')
+      alert('Account deletion failed!')
     } finally {
       setIsSaving(false)
     }

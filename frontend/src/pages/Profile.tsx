@@ -12,27 +12,53 @@ import {
 import { Link } from 'react-router-dom'
 import { getProfile } from '@/api/authApi'
 import { User } from '@/types'
+import { useAuthStore } from '@/store/authStore'
 
 type TabType = 'uploads' | 'favorites' | 'books';
 
 export default function Profile(): React.JSX.Element {
+  const authUser = useAuthStore((state) => state.user)
   const [activeTab, setActiveTab] = useState<TabType>('uploads')
-  const [user, setUser] = useState<User | null>(null)
+  const [backendUser, setBackendUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const userData = await getProfile()
-        setUser(userData)
+        setBackendUser(userData)
       } catch (error) {
         console.error('Failed to fetch profile', error)
       } finally {
         setIsLoading(false)
       }
     }
+
     fetchUser()
   }, [])
+
+  const user = backendUser
+    ? {
+        ...backendUser,
+        avatar: backendUser.avatar || authUser?.photoURL || undefined,
+        name: backendUser.name || authUser?.displayName || authUser?.email || 'User',
+      }
+    : authUser
+    ? {
+        id: 0,
+        name: authUser.displayName || authUser.email || 'User',
+        email: authUser.email || '',
+        avatar: authUser.photoURL || undefined,
+        role: 'student' as const,
+        school: undefined,
+        university: undefined,
+        major: undefined,
+        bio: undefined,
+        followers_count: 0,
+        following_count: 0,
+        documents_count: 0,
+      }
+    : null
 
   if (isLoading) {
     return (

@@ -1,19 +1,66 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, X } from 'lucide-react'
+import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth'
+import { auth, googleProvider } from '../firebase'
 import { useAuthStore } from '../store/authStore'
 
 export default function Login() {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const { setAuth } = useAuthStore()
   const navigate = useNavigate()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Simulated login
-    setAuth({ name: 'User', email: email || 'user@example.com' }, 'token')
-    navigate('/')
+    setError('')
+    setLoading(true)
+
+    try {
+      const credential = await signInWithEmailAndPassword(auth, email, password)
+      const token = await credential.user.getIdToken()
+      setAuth(
+        {
+          uid: credential.user.uid,
+          email: credential.user.email,
+          displayName: credential.user.displayName,
+          photoURL: credential.user.photoURL,
+        },
+        token,
+      )
+      navigate('/')
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign in. Please check your credentials.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setError('')
+    setLoading(true)
+
+    try {
+      const result = await signInWithPopup(auth, googleProvider)
+      const token = await result.user.getIdToken()
+      setAuth(
+        {
+          uid: result.user.uid,
+          email: result.user.email,
+          displayName: result.user.displayName,
+          photoURL: result.user.photoURL,
+        },
+        token,
+      )
+      navigate('/')
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign in with Google.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -71,13 +118,14 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-6 max-w-[350px] mx-auto w-full">
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 ml-1">User name</label>
+              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 ml-1">Email Address</label>
               <input
-                type="text"
-                placeholder="Enter your User name"
+                type="email"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-5 py-3 rounded-full border border-gray-200 dark:border-gray-700 bg-transparent dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                required
               />
             </div>
 
@@ -87,7 +135,10 @@ export default function Login() {
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-5 py-3 rounded-full border border-gray-200 dark:border-gray-700 bg-transparent dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                  required
                 />
                 <button
                   type="button"
@@ -109,8 +160,25 @@ export default function Login() {
               </Link>
             </div>
 
-            <button className="w-full bg-primary hover:bg-primary-dark text-white py-3.5 rounded-full font-bold text-sm shadow-lg shadow-primary/20 transition-all mt-4">
-              Login
+            {error ? (
+              <p className="text-xs text-red-500 text-center">{error}</p>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-primary hover:bg-primary-dark disabled:opacity-60 disabled:cursor-not-allowed text-white py-3.5 rounded-full font-bold text-sm shadow-lg shadow-primary/20 transition-all mt-4"
+            >
+              {loading ? 'Signing in…' : 'Login'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-slate-800 dark:text-white py-3.5 rounded-full font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+            >
+              {loading ? 'Please wait…' : 'Continue with Google'}
             </button>
           </form>
         </div>

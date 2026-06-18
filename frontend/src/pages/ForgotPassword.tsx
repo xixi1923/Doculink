@@ -1,16 +1,29 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail, ArrowLeft, CheckCircle2, X } from 'lucide-react'
+import { sendPasswordResetEmail } from 'firebase/auth'
+import { auth } from '../firebase'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle forgot password logic (API call)
-    setIsSubmitted(true)
+    setError('')
+    setLoading(true)
+
+    try {
+      await sendPasswordResetEmail(auth, email)
+      setIsSubmitted(true)
+    } catch (err: any) {
+      setError(err.message || 'Unable to send reset email. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

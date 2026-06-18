@@ -1,19 +1,46 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, X } from 'lucide-react'
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
+import { auth } from '../firebase'
 import { useAuthStore } from '../store/authStore'
 
 export default function Register() {
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const { setAuth } = useAuthStore()
   const navigate = useNavigate()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setAuth({ name: name || 'User', email }, 'token')
-    navigate('/')
+    setError('')
+    setLoading(true)
+
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, email, password)
+      if (name.trim()) {
+        await updateProfile(credential.user, { displayName: name.trim() })
+      }
+      const token = await credential.user.getIdToken()
+      setAuth(
+        {
+          uid: credential.user.uid,
+          email: credential.user.email,
+          displayName: credential.user.displayName,
+          photoURL: credential.user.photoURL,
+        },
+        token,
+      )
+      navigate('/')
+    } catch (err: any) {
+      setError(err.message || 'Failed to create account. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -98,7 +125,10 @@ export default function Register() {
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-5 py-3 rounded-full border border-gray-200 dark:border-gray-700 bg-transparent dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                  required
                 />
                 <button
                   type="button"
@@ -110,8 +140,16 @@ export default function Register() {
               </div>
             </div>
 
-            <button className="w-full bg-primary hover:bg-primary-dark text-white py-3.5 rounded-full font-bold text-sm shadow-lg shadow-primary/20 transition-all mt-4">
-              Register
+            {error ? (
+              <p className="text-xs text-red-500 text-center">{error}</p>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-primary hover:bg-primary-dark disabled:opacity-60 disabled:cursor-not-allowed text-white py-3.5 rounded-full font-bold text-sm shadow-lg shadow-primary/20 transition-all mt-4"
+            >
+              {loading ? 'Creating account…' : 'Register'}
             </button>
           </form>
         </div>

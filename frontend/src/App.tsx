@@ -1,5 +1,8 @@
+import { useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
+import { onAuthStateChanged } from 'firebase/auth'
 import { useAuthStore } from './store/authStore'
+import { auth } from './firebase'
 import MainLayout from './layouts/MainLayout'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -30,7 +33,30 @@ import PrivacyPolicy from './pages/Legal/PrivacyPolicy'
 import RequestBook from './pages/RequestBook'
 
 function App() {
-  const { token } = useAuthStore()
+  const token = useAuthStore((state) => state.token)
+  const setAuth = useAuthStore((state) => state.setAuth)
+  const logout = useAuthStore((state) => state.logout)
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const token = await user.getIdToken()
+        setAuth(
+          {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+          },
+          token,
+        )
+      } else {
+        logout()
+      }
+    })
+
+    return unsubscribe
+  }, [logout, setAuth])
 
   return (
     <Routes>

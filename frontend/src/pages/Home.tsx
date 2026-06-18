@@ -100,7 +100,7 @@ export default function Home(): React.JSX.Element {
               </div>
               <input
                 type="text"
-                placeholder="Search by title, author, or university subject..."
+                placeholder="Search by title, author, or school subject..."
                 value={searchQuery}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                 className="w-full pl-11 pr-24 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 outline-none focus:bg-white/10 focus:border-teal-500/50 transition-all text-xs font-medium backdrop-blur-md"
@@ -346,7 +346,7 @@ export default function Home(): React.JSX.Element {
                    ))}
                 </div>
                 <p className="text-[11px] font-light text-slate-400 max-w-xs leading-normal">
-                  Join thousands of local university students pooling revision material files together.
+                  Join thousands of local students pooling revision material files together.
                 </p>
               </div>
               <div className="absolute top-0 right-0 w-44 h-44 bg-teal-500/5 rounded-full blur-2xl" />

@@ -37,6 +37,8 @@ export default function Profile(): React.JSX.Element {
     fetchUser()
   }, [])
 
+  const [imageError, setImageError] = useState(false)
+
   const user = backendUser
     ? {
         ...backendUser,
@@ -77,6 +79,10 @@ export default function Profile(): React.JSX.Element {
     )
   }
 
+  const initials = user.name
+    ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'U'
+
   return (
     <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 font-sans text-slate-800 dark:text-gray-200 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom duration-500">
 
@@ -90,11 +96,16 @@ export default function Profile(): React.JSX.Element {
         <div className="px-6 sm:px-10 pb-10">
           <div className="relative flex flex-col md:flex-row items-end md:items-center gap-6 -mt-16 mb-8">
             {/* Avatar */}
-            <div className="w-32 h-32 rounded-[24px] border-4 border-white dark:border-gray-900 bg-[#0b1329] shadow-lg flex items-center justify-center text-3xl font-black text-teal-400 shrink-0 transform transition-transform duration-300 hover:scale-105">
-              {user.avatar ? (
-                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover rounded-[20px]" />
+            <div className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-900 bg-[#0b1329] shadow-lg flex items-center justify-center text-4xl font-black text-teal-400 shrink-0 transform transition-transform duration-300 hover:scale-105 overflow-hidden select-none">
+              {user.avatar && !imageError ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-full h-full object-cover"
+                  onError={() => setImageError(true)}
+                />
               ) : (
-                user.name.split(' ').map(n => n[0]).join('')
+                <span>{initials}</span>
               )}
             </div>
 
@@ -109,7 +120,7 @@ export default function Profile(): React.JSX.Element {
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 dark:text-gray-500 font-black uppercase tracking-widest mt-1.5">
-                {user.school || 'Unspecified School'} • {user.major || 'General Studies'}
+                {user.school || user.university || 'Unspecified Education'} • {user.major || 'General Studies'}
               </p>
             </div>
 

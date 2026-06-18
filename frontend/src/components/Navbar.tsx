@@ -12,7 +12,7 @@ export default function Navbar() {
   const navLinks = [
     { label: 'Documents', path: '/search' },
     { label: 'Books', path: '/books' },
-    { label: 'Universities', path: '/universities' },
+    { label: 'Education', path: '/universities' },
     { label: 'Trending', path: '/trending' },
   ]
 

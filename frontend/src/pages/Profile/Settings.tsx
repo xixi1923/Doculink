@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   User,
   Bell,
@@ -8,8 +8,12 @@ import {
   Trash2,
   ChevronRight,
   Shield,
-  Smartphone
+  Smartphone,
+  Loader2
 } from 'lucide-react'
+import { getProfile, updateProfile } from '@/api/authApi'
+import { User as UserType } from '@/types'
+import { useAuthStore } from '@/store/authStore'
 
 // ================= TYPES & INTERFACES =================
 type SettingSection = 'profile' | 'account' | 'notifications' | 'privacy';
@@ -22,6 +26,62 @@ interface MenuItem {
 
 export default function Settings(): React.JSX.Element {
   const [activeSection, setActiveSection] = useState<SettingSection>('profile')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [imageError, setImageError] = useState(false)
+  const [profile, setProfile] = useState<Partial<UserType>>({
+    name: '',
+    email: '',
+    bio: '',
+    school: '',
+    university: '',
+    major: ''
+  })
+
+  const { setAuth, token } = useAuthStore()
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await getProfile()
+        setProfile({
+          name: data.name || '',
+          email: data.email || '',
+          bio: data.bio || '',
+          school: data.school || '',
+          university: data.university || '',
+          major: data.major || '',
+          avatar: data.avatar || undefined
+        })
+      } catch (error) {
+        console.error('Failed to fetch profile', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchProfile()
+  }, [])
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      const response = await updateProfile(profile)
+      const updatedUser = response.user
+      if (token) {
+        setAuth({
+          uid: updatedUser.id.toString(),
+          email: updatedUser.email,
+          displayName: updatedUser.name,
+          photoURL: updatedUser.avatar || null
+        }, token)
+      }
+      // Success feedback could be added here
+    } catch (error) {
+      console.error('Failed to update profile', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   // ================= MENU REGISTRY =================
   const menuItems: MenuItem[] = [
@@ -30,6 +90,18 @@ export default function Settings(): React.JSX.Element {
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'privacy', label: 'Privacy & Security', icon: Shield },
   ]
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
+      </div>
+    )
+  }
+
+  const initials = profile.name
+    ? profile.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'U'
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 font-sans text-slate-800 dark:text-slate-200 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom duration-500">
@@ -77,8 +149,17 @@ export default function Settings(): React.JSX.Element {
 
                     {/* Avatar Customizer Group */}
                     <div className="flex items-center gap-5">
-                      <div className="w-20 h-20 rounded-2xl bg-[#0b1329] flex items-center justify-center text-teal-400 text-xl font-black shadow-inner border border-slate-800 shrink-0">
-                        SK
+                      <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-teal-600 dark:text-teal-400 text-xl font-black shadow-inner border border-slate-200 dark:border-slate-700 shrink-0 overflow-hidden select-none">
+                        {profile.avatar && !imageError ? (
+                          <img
+                            src={profile.avatar}
+                            alt={profile.name}
+                            className="w-full h-full object-cover"
+                            onError={() => setImageError(true)}
+                          />
+                        ) : (
+                          <span>{initials}</span>
+                        )}
                       </div>
                       <div className="space-y-1.5">
                         <button className="px-4 py-2 bg-teal-500 text-white text-[10px] font-extrabold uppercase tracking-wider rounded-xl hover:bg-teal-600 transition-all shadow-sm shadow-teal-500/10 hover:-translate-y-0.5">
@@ -92,22 +173,77 @@ export default function Settings(): React.JSX.Element {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Display Name</label>
-                        <input type="text" placeholder="Sopheak K." className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors" />
+                        <input
+                          type="text"
+                          value={profile.name}
+                          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors"
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Email Address</label>
-                        <input type="email" placeholder="sopheak@example.com" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors" />
+                        <input
+                          type="email"
+                          value={profile.email}
+                          onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors"
+                        />
                       </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-0.5">High School / Education</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Bak Touk High School"
+                          value={profile.school}
+                          onChange={(e) => setProfile({ ...profile, school: e.target.value })}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-0.5">University (If applicable)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. RUPP"
+                          value={profile.university}
+                          onChange={(e) => setProfile({ ...profile, university: e.target.value })}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2 space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Major / Grade Level</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Grade 12 or Computer Science"
+                          value={profile.major}
+                          onChange={(e) => setProfile({ ...profile, major: e.target.value })}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors"
+                        />
+                      </div>
+
                       <div className="md:col-span-2 space-y-1.5">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Biography Statement</label>
-                        <textarea rows={4} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors resize-none" placeholder="Write a brief educational description summary concerning yourself..."></textarea>
+                        <textarea
+                          rows={4}
+                          value={profile.bio}
+                          onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors resize-none"
+                          placeholder="Write a brief educational description summary concerning yourself..."
+                        ></textarea>
                       </div>
                     </div>
                   </div>
                 </section>
 
                 <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800/40">
-                   <button className="px-6 py-2.5 bg-teal-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl hover:bg-teal-600 transition-all shadow-sm shadow-teal-500/10 hover:-translate-y-0.5">
+                   <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="px-6 py-2.5 bg-teal-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl hover:bg-teal-600 transition-all shadow-sm shadow-teal-500/10 hover:-translate-y-0.5 flex items-center gap-2"
+                   >
+                     {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
                      Save Changes
                    </button>
                 </div>
@@ -176,7 +312,7 @@ export default function Settings(): React.JSX.Element {
                        {[
                          { title: 'Peer Material Releases', desc: 'Alert when contributors inside your active network log files' },
                          { title: 'Direct Communications', desc: 'Ping alerts when peer inquiries route through internal discussions' },
-                         { title: 'DocuLink Network Diagnostics', desc: 'General patch updates regarding university schema additions' },
+                         { title: 'DocuLink Network Diagnostics', desc: 'General patch updates regarding education schema additions' },
                          { title: 'Workspace Mentions', desc: 'Receive instant feedback loops when your profile handle is cited' },
                        ].map((item, idx) => (
                          <div key={idx} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">

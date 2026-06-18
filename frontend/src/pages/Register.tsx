@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, X } from 'lucide-react'
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
-import { auth } from '../firebase'
+import { createUserWithEmailAndPassword, updateProfile, signInWithPopup } from 'firebase/auth'
+import { auth, googleProvider } from '../firebase'
 import { useAuthStore } from '../store/authStore'
 
 export default function Register() {
@@ -38,6 +38,30 @@ export default function Register() {
       navigate('/')
     } catch (err: any) {
       setError(err.message || 'Failed to create account. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setError('')
+    setLoading(true)
+
+    try {
+      const result = await signInWithPopup(auth, googleProvider)
+      const token = await result.user.getIdToken()
+      setAuth(
+        {
+          uid: result.user.uid,
+          email: result.user.email,
+          displayName: result.user.displayName,
+          photoURL: result.user.photoURL,
+        },
+        token,
+      )
+      navigate('/')
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign in with Google.')
     } finally {
       setLoading(false)
     }
@@ -150,6 +174,15 @@ export default function Register() {
               className="w-full bg-primary hover:bg-primary-dark disabled:opacity-60 disabled:cursor-not-allowed text-white py-3.5 rounded-full font-bold text-sm shadow-lg shadow-primary/20 transition-all mt-4"
             >
               {loading ? 'Creating account…' : 'Register'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-slate-800 dark:text-white py-3.5 rounded-full font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+            >
+              {loading ? 'Please wait…' : 'Continue with Google'}
             </button>
           </form>
         </div>

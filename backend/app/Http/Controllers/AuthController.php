@@ -62,4 +62,25 @@ class AuthController extends Controller
     {
         return response()->json($request->user()->loadCount(['followers', 'following', 'documents']));
     }
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
+            'bio' => 'nullable|string|max:1000',
+            'school' => 'nullable|string|max:255',
+            'university' => 'nullable|string|max:255',
+            'major' => 'nullable|string|max:255',
+        ]);
+
+        $user->update($request->only(['name', 'email', 'bio', 'school', 'university', 'major']));
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'user' => $user->loadCount(['followers', 'following', 'documents']),
+        ]);
+    }
 }

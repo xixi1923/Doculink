@@ -56,10 +56,10 @@ export default function Universities(): React.JSX.Element {
         <div className="relative z-10 max-w-2xl mx-auto space-y-6">
           <div className="space-y-2">
             <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight">
-              Discover Your <span className="text-teal-400 italic font-serif font-normal">Campus Hub</span>
+              Discover Your <span className="text-teal-400 italic font-serif font-normal">Education Hub</span>
             </h1>
             <p className="text-slate-400 text-xs md:text-sm max-w-md mx-auto font-normal leading-relaxed">
-              Explore shared lecture summaries and academic materials from top Cambodian institutions.
+              Explore shared lecture summaries, notes, and academic materials from top Cambodian schools, high schools, and universities.
             </p>
           </div>
 
@@ -70,7 +70,7 @@ export default function Universities(): React.JSX.Element {
             </div>
             <input
               type="text"
-              placeholder="Search your university..."
+              placeholder="Search your school, high school or university..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all placeholder:text-slate-500"
@@ -129,7 +129,7 @@ export default function Universities(): React.JSX.Element {
         <div className="flex items-end justify-between mb-6 px-1">
           <div>
             <h2 className="text-base font-black text-slate-900 tracking-tight">
-              {searchQuery ? `Search results for "${searchQuery}"` : 'Explore All Universities'}
+              {searchQuery ? `Search results for "${searchQuery}"` : 'Explore All Educational Institutions'}
             </h2>
             <p className="text-[11px] text-slate-400 font-medium">
               {filteredUniversities.length} Institutions found

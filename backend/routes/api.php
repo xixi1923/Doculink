@@ -17,6 +17,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/profile', [AuthController::class, 'me']);
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
 
     Route::get('/stats/home', [StatsController::class, 'homeStats']);
     Route::get('/documents', [DocumentController::class, 'index']);

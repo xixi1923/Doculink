@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # DocuLink - Educational Document Sharing Platform
 
 **DocuLink** is a document-sharing and learning platform designed specifically for Cambodian high school and university students, inspired by Studocu.
@@ -70,3 +71,6 @@ npm run dev
 
 ## 📄 License
 MIT License. Created for the Cambodian student community.
+=======
+# Doculink
+>>>>>>> f49298b549e1cb113059c8cf9cc606c0f0f9e805

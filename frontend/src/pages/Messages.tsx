@@ -40,6 +40,7 @@ export default function Messages() {
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [isLoadingChats, setIsLoadingChats] = useState(true)
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [isSending, setIsSending] = useState(false)
@@ -134,6 +135,11 @@ export default function Messages() {
     }
   }
 
+  const filteredChats = chats.filter(chat =>
+    chat.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   return (
     <div className="max-w-7xl mx-auto h-[calc(100vh-120px)] my-6 px-4 font-sans">
       <div className="bg-white dark:bg-gray-800 rounded-[32px] shadow-sm border border-gray-100 dark:border-gray-700 h-full overflow-hidden flex">
@@ -147,6 +153,8 @@ export default function Messages() {
               <input
                 type="text"
                 placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-900 border border-transparent rounded-[20px] text-sm font-medium focus:bg-white dark:focus:bg-gray-950 focus:ring-4 focus:ring-primary/10 transition-all outline-none"
               />
             </div>
@@ -157,8 +165,8 @@ export default function Messages() {
               <div className="flex justify-center py-10">
                 <Loader2 className="w-6 h-6 text-teal-500 animate-spin" />
               </div>
-            ) : chats.length > 0 ? (
-              chats.map((chat) => (
+            ) : filteredChats.length > 0 ? (
+              filteredChats.map((chat) => (
                 <button
                   key={chat.id}
                   onClick={() => setSelectedChat(chat)}
@@ -193,8 +201,10 @@ export default function Messages() {
                 </button>
               ))
             ) : (
-              <div className="text-center py-10">
-                <p className="text-sm text-gray-400 font-medium">No messages yet</p>
+              <div className="text-center py-10 px-4">
+                <p className="text-sm text-gray-400 font-medium leading-relaxed">
+                  {searchQuery ? `No conversations found for "${searchQuery}"` : 'No messages yet'}
+                </p>
               </div>
             )}
           </div>

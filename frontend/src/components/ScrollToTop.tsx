@@ -16,7 +16,7 @@ export default function ScrollToTop() {
       // Calculate scroll progress
       const winScroll = document.body.scrollTop || document.documentElement.scrollTop
       const height = document.documentElement.scrollHeight - document.documentElement.clientHeight
-      const scrolled = (winScroll / height) * 100
+      const scrolled = height > 0 ? (winScroll / height) * 100 : 0
       setProgress(scrolled)
     }
 

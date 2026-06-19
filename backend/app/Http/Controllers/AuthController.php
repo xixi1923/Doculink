@@ -25,6 +25,10 @@ class AuthController extends Controller
             'role' => 'student',
         ]);
 
+        if (!$user->hasRole('student')) {
+            $user->syncRoles('student');
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -43,6 +47,12 @@ class AuthController extends Controller
         }
 
         $user = User::where('email', $request->email)->firstOrFail();
+
+        $roleToSync = $user->role ?? 'student';
+        if (!$user->hasRole($roleToSync)) {
+            $user->syncRoles($roleToSync);
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([

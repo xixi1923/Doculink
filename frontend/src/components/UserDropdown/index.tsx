@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { User, Settings, LogOut, ChevronDown } from 'lucide-react'
+import { User, FileText, Heart, Download, Settings, LogOut, ChevronDown, ShieldCheck } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 
@@ -80,6 +80,30 @@ export default function UserDropdown() {
                 </span>
               </Link>
             ))}
+            {user?.role === 'admin' && (
+              <Link
+                to="/admin/dashboard"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors group"
+              >
+                <ShieldCheck size={18} className="text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors" />
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors">
+                  Admin Panel
+                </span>
+              </Link>
+            )}
+            {user?.role !== 'admin' && (
+              <Link
+                to="/"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors group"
+              >
+                <User size={18} className="text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors" />
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors">
+                  User Home
+                </span>
+              </Link>
+            )}
             <div className="h-px bg-gray-100 dark:bg-gray-800 my-2 mx-2" />
             <button
               onClick={handleLogout}

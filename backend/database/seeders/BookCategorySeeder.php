@@ -16,10 +16,10 @@ class BookCategorySeeder extends Seeder
         ];
 
         foreach ($categories as $cat) {
-            BookCategory::create([
-                'name' => $cat,
-                'slug' => Str::slug($cat),
-            ]);
+            BookCategory::updateOrCreate(
+                ['slug' => Str::slug($cat)],
+                ['name' => $cat]
+            );
         }
     }
 }

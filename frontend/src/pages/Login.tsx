@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, X } from 'lucide-react'
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth'
-import { auth, googleProvider } from '../firebase'
 import { useAuthStore } from '../store/authStore'
+import { auth, googleProvider } from '../firebase'
+import { firebaseLogin } from '@/api/authApi'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -21,19 +22,17 @@ export default function Login() {
 
     try {
       const credential = await signInWithEmailAndPassword(auth, email, password)
-      const token = await credential.user.getIdToken()
-      setAuth(
-        {
-          uid: credential.user.uid,
-          email: credential.user.email,
-          displayName: credential.user.displayName,
-          photoURL: credential.user.photoURL,
-        },
-        token,
-      )
-      navigate('/')
+      const user = credential.user
+      const response = await firebaseLogin({
+        email: user.email,
+        name: user.displayName,
+      })
+      setAuth(response.user, response.token)
+      navigate(response.user?.role === 'admin' ? '/admin/dashboard' : '/')
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in. Please check your credentials.')
+      console.error('Firebase login error', err)
+      const errorMessage = err?.message || err?.code || 'Login failed. Please check your credentials.'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -44,20 +43,16 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const result = await signInWithPopup(auth, googleProvider)
-      const token = await result.user.getIdToken()
-      setAuth(
-        {
-          uid: result.user.uid,
-          email: result.user.email,
-          displayName: result.user.displayName,
-          photoURL: result.user.photoURL,
-        },
-        token,
-      )
+      const credential = await signInWithPopup(auth, googleProvider)
+      const user = credential.user
+      const response = await firebaseLogin({
+        email: user.email,
+        name: user.displayName,
+      })
+      setAuth(response.user, response.token)
       navigate('/')
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google.')
+      setError(err?.message || 'Google sign-in failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -65,15 +60,12 @@ export default function Login() {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Blurred Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-md"
         onClick={() => navigate('/')}
       />
 
       <div className="bg-white dark:bg-gray-900 rounded-[40px] shadow-2xl overflow-hidden max-w-5xl w-full flex flex-col md:flex-row min-h-[600px] relative z-10 animate-in fade-in zoom-in duration-300">
-
-        {/* Left Side - Image */}
         <div className="md:w-1/2 relative hidden md:block">
           <img
             src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&q=80&w=1000"
@@ -87,7 +79,6 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Right Side - Form */}
         <div className="md:w-1/2 p-8 md:p-16 flex flex-col justify-center relative">
           <button
             onClick={() => navigate('/')}
@@ -98,12 +89,12 @@ export default function Login() {
           <div className="text-center mb-8">
             <h3 className="text-gray-600 dark:text-gray-400 text-sm mb-6">Welcome to DocuLink!</h3>
 
-            {/* Toggle Switch */}
             <div className="inline-flex bg-[#f3f4f6] dark:bg-gray-800 p-1 rounded-full mb-8 w-full max-w-[280px]">
               <button className="flex-1 py-2 px-6 rounded-full bg-primary text-white text-sm font-medium transition-all">
                 Login
               </button>
               <button
+                type="button"
                 onClick={() => navigate('/register')}
                 className="flex-1 py-2 px-6 rounded-full text-gray-500 dark:text-gray-400 text-sm font-medium hover:text-primary transition-all"
               >
@@ -133,7 +124,7 @@ export default function Login() {
               <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 ml-1">Password</label>
               <div className="relative">
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -150,6 +141,8 @@ export default function Login() {
               </div>
             </div>
 
+            {error && <p className="text-sm text-rose-500 font-medium">{error}</p>}
+
             <div className="flex items-center justify-between px-1">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary bg-transparent" />
@@ -160,10 +153,6 @@ export default function Login() {
               </Link>
             </div>
 
-            {error ? (
-              <p className="text-xs text-red-500 text-center">{error}</p>
-            ) : null}
-
             <button
               type="submit"
               disabled={loading}
@@ -172,13 +161,20 @@ export default function Login() {
               {loading ? 'Signing in…' : 'Login'}
             </button>
 
+            <div className="relative flex items-center justify-center py-2">
+              <div className="flex-grow border-t border-gray-100 dark:border-gray-800"></div>
+              <span className="flex-shrink mx-4 text-[10px] text-gray-400 font-bold uppercase tracking-widest">Or</span>
+              <div className="flex-grow border-t border-gray-100 dark:border-gray-800"></div>
+            </div>
+
             <button
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-slate-800 dark:text-white py-3.5 rounded-full font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+              className="w-full flex items-center justify-center gap-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-slate-800 dark:text-white py-3.5 rounded-full font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm"
             >
-              {loading ? 'Please wait…' : 'Continue with Google'}
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+              <span>{loading ? 'Please wait…' : 'Continue with Google'}</span>
             </button>
           </form>
         </div>

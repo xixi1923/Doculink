@@ -16,12 +16,14 @@ class DatabaseSeeder extends Seeder
             BookCategorySeeder::class,
         ]);
 
-        $admin = User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@doculink.com',
-            'password' => Hash::make('password'),
-            'role' => 'admin',
-        ]);
+        $admin = User::updateOrCreate(
+            ['email' => 'admin@doculink.com'],
+            [
+                'name' => 'Admin User',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+            ]
+        );
 
         $admin->assignRole('admin');
 

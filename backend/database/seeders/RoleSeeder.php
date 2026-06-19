@@ -14,18 +14,18 @@ class RoleSeeder extends Seeder
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         // Create permissions
-        Permission::create(['name' => 'manage users']);
-        Permission::create(['name' => 'manage documents']);
-        Permission::create(['name' => 'manage categories']);
-        Permission::create(['name' => 'view dashboard']);
+        Permission::firstOrCreate(['name' => 'manage users']);
+        Permission::firstOrCreate(['name' => 'manage documents']);
+        Permission::firstOrCreate(['name' => 'manage categories']);
+        Permission::firstOrCreate(['name' => 'view dashboard']);
 
         // Create roles and assign created permissions
-        $roleAdmin = Role::create(['name' => 'admin']);
+        $roleAdmin = Role::firstOrCreate(['name' => 'admin']);
         $roleAdmin->givePermissionTo(Permission::all());
 
-        $roleModerator = Role::create(['name' => 'moderator']);
+        $roleModerator = Role::firstOrCreate(['name' => 'moderator']);
         $roleModerator->givePermissionTo(['manage documents', 'manage categories', 'view dashboard']);
 
-        $roleStudent = Role::create(['name' => 'student']);
+        $roleStudent = Role::firstOrCreate(['name' => 'student']);
     }
 }

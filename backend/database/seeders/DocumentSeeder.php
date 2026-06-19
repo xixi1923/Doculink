@@ -15,16 +15,18 @@ class DocumentSeeder extends Seeder
         $category = Category::first();
 
         if ($user && $category) {
-            Document::create([
-                'title' => 'Sample Math Notes',
-                'description' => 'A set of comprehensive math notes for Grade 12.',
-                'category_id' => $category->id,
-                'user_id' => $user->id,
-                'file_path' => 'documents/sample.pdf',
-                'file_type' => 'pdf',
-                'status' => 'pending',
-                'school' => 'Bak Touk High School',
-            ]);
+            Document::firstOrCreate(
+                ['title' => 'Sample Math Notes'],
+                [
+                    'description' => 'A set of comprehensive math notes for Grade 12.',
+                    'category_id' => $category->id,
+                    'user_id' => $user->id,
+                    'file_path' => 'documents/sample.pdf',
+                    'file_type' => 'pdf',
+                    'status' => 'pending',
+                    'school' => 'Bak Touk High School',
+                ]
+            );
         }
     }
 }

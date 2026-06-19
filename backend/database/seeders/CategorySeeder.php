@@ -20,10 +20,10 @@ class CategorySeeder extends Seeder
         ];
 
         foreach ($categories as $cat) {
-            Category::create([
-                'name' => $cat,
-                'slug' => Str::slug($cat),
-            ]);
+            Category::updateOrCreate(
+                ['slug' => Str::slug($cat)],
+                ['name' => $cat]
+            );
         }
     }
 }

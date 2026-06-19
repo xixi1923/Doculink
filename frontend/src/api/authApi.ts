@@ -24,6 +24,11 @@ export const register = async (userData: any) => {
   return response.data
 }
 
+export const firebaseLogin = async (payload: any) => {
+  const response = await api.post('/firebase-login', payload)
+  return response.data
+}
+
 export const getProfile = async () => {
   const response = await api.get('/profile')
   return response.data

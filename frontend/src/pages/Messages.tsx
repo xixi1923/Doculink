@@ -41,6 +41,8 @@ export default function Messages() {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [msgSearchQuery, setMsgSearchQuery] = useState('')
+  const [isSearchingInChat, setIsSearchingInChat] = useState(false)
   const [isLoadingChats, setIsLoadingChats] = useState(true)
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [isSending, setIsSending] = useState(false)
@@ -140,6 +142,10 @@ export default function Messages() {
     chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const filteredMessages = messages.filter(msg =>
+    msg.text.toLowerCase().includes(msgSearchQuery.toLowerCase())
+  )
+
   return (
     <div className="max-w-7xl mx-auto h-[calc(100vh-120px)] my-6 px-4 font-sans">
       <div className="bg-white dark:bg-gray-800 rounded-[32px] shadow-sm border border-gray-100 dark:border-gray-700 h-full overflow-hidden flex">
@@ -216,21 +222,46 @@ export default function Messages() {
             <>
               {/* Chat Header */}
               <header className="p-4 md:p-6 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700">
-                    <img src={selectedChat.user.avatar || 'https://i.pravatar.cc/150'} alt={selectedChat.user.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <h2 className="font-black text-gray-900 dark:text-white leading-none mb-1.5">{selectedChat.user.name}</h2>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${selectedChat.user.status === 'online' ? 'bg-green-500' : 'bg-gray-300'}`} />
-                      <p className={`text-[10px] font-black uppercase tracking-widest ${selectedChat.user.status === 'online' ? 'text-green-500' : 'text-gray-400'}`}>
-                        {selectedChat.user.status === 'online' ? 'Active Now' : `Last seen ${selectedChat.user.lastSeen || 'recently'}`}
-                      </p>
+                <div className="flex items-center gap-4 flex-grow">
+                  {!isSearchingInChat ? (
+                    <>
+                      <div className="w-12 h-12 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700">
+                        <img src={selectedChat.user.avatar || 'https://i.pravatar.cc/150'} alt={selectedChat.user.name} className="w-full h-full object-cover" />
+                      </div>
+                      <div>
+                        <h2 className="font-black text-gray-900 dark:text-white leading-none mb-1.5">{selectedChat.user.name}</h2>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${selectedChat.user.status === 'online' ? 'bg-green-500' : 'bg-gray-300'}`} />
+                          <p className={`text-[10px] font-black uppercase tracking-widest ${selectedChat.user.status === 'online' ? 'text-green-500' : 'text-gray-400'}`}>
+                            {selectedChat.user.status === 'online' ? 'Active Now' : `Last seen ${selectedChat.user.lastSeen || 'recently'}`}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="relative w-full max-w-md animate-in fade-in slide-in-from-right-4 duration-300">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder={`Search messages in ${selectedChat.user.name}...`}
+                        value={msgSearchQuery}
+                        onChange={(e) => setMsgSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-transparent rounded-xl text-xs font-bold focus:bg-white dark:focus:bg-gray-950 focus:ring-4 focus:ring-primary/5 transition-all outline-none"
+                      />
                     </div>
-                  </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setIsSearchingInChat(!isSearchingInChat)
+                      if (isSearchingInChat) setMsgSearchQuery('')
+                    }}
+                    className={`p-3 rounded-2xl transition-all ${isSearchingInChat ? 'bg-primary text-white' : 'text-gray-400 hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                  >
+                    <Search size={20} />
+                  </button>
                   <button className="p-3 text-gray-400 hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-700 rounded-2xl transition-all">
                     <Info size={22} />
                   </button>
@@ -245,30 +276,42 @@ export default function Messages() {
                   </div>
                 ) : (
                   <>
-                    <div className="flex justify-center">
-                      <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.25em] bg-white dark:bg-gray-800 px-4 py-1.5 rounded-full shadow-sm border border-gray-50 dark:border-gray-700">Today</span>
-                    </div>
-
-                    {messages.map((msg) => (
-                      <div key={msg.id} className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[70%] group ${msg.isMe ? 'items-end' : 'items-start'} flex flex-col`}>
-                          <div className={`px-5 py-3.5 rounded-[24px] text-sm font-bold shadow-sm leading-relaxed ${
-                            msg.isMe
-                              ? 'bg-primary text-white rounded-tr-none'
-                              : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-50 dark:border-gray-700'
-                          }`}>
-                            {msg.text}
-                          </div>
-                          <div className="flex items-center gap-2 mt-2 px-1">
-                            <span className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{msg.time}</span>
-                            {msg.isMe && (
-                              <CheckCheck size={14} className={msg.status === 'read' ? 'text-primary' : 'text-gray-300'} />
-                            )}
-                          </div>
+                    {filteredMessages.length > 0 ? (
+                      <>
+                        <div className="flex justify-center">
+                          <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.25em] bg-white dark:bg-gray-800 px-4 py-1.5 rounded-full shadow-sm border border-gray-50 dark:border-gray-700">Today</span>
                         </div>
+
+                        {filteredMessages.map((msg) => (
+                          <div key={msg.id} className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[70%] group ${msg.isMe ? 'items-end' : 'items-start'} flex flex-col`}>
+                              <div className={`px-5 py-3.5 rounded-[24px] text-sm font-bold shadow-sm leading-relaxed ${
+                                msg.isMe
+                                  ? 'bg-primary text-white rounded-tr-none'
+                                  : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-50 dark:border-gray-700'
+                              }`}>
+                                {msg.text}
+                              </div>
+                              <div className="flex items-center gap-2 mt-2 px-1">
+                                <span className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{msg.time}</span>
+                                {msg.isMe && (
+                                  <CheckCheck size={14} className={msg.status === 'read' ? 'text-primary' : 'text-gray-300'} />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <div ref={messagesEndRef} />
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-20 text-center">
+                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center text-gray-400 mb-4">
+                          <Search size={32} />
+                        </div>
+                        <p className="text-sm font-black text-gray-400 uppercase tracking-widest">No matches found</p>
+                        <p className="text-xs font-medium text-gray-400 mt-2">Try searching for a different keyword</p>
                       </div>
-                    ))}
-                    <div ref={messagesEndRef} />
+                    )}
                   </>
                 )}
               </div>

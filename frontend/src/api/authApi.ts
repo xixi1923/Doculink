@@ -73,4 +73,19 @@ export const deleteNotificationApi = async (id: string) => {
   return response.data
 }
 
+export const getChats = async () => {
+  const response = await api.get('/chats')
+  return response.data
+}
+
+export const getMessages = async (id: number) => {
+  const response = await api.get(`/chats/${id}/messages`)
+  return response.data
+}
+
+export const sendMessageApi = async (data: { receiver_id: number, message: string }) => {
+  const response = await api.post('/messages', data)
+  return response.data
+}
+
 export default api

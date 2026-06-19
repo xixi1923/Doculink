@@ -5,6 +5,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\DocumentManagementController;
@@ -27,6 +28,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+
+    Route::get('/chats', [MessageController::class, 'getChats']);
+    Route::get('/chats/{id}/messages', [MessageController::class, 'getMessages']);
+    Route::post('/messages', [MessageController::class, 'sendMessage']);
 
     Route::get('/stats/home', [StatsController::class, 'homeStats']);
     Route::get('/documents', [DocumentController::class, 'index']);

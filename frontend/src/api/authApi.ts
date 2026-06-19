@@ -88,4 +88,14 @@ export const sendMessageApi = async (data: { receiver_id: number, message: strin
   return response.data
 }
 
+export const getUniversities = async () => {
+  const response = await api.get('/universities')
+  return response.data
+}
+
+export const getUniversityDetail = async (id: string) => {
+  const response = await api.get(`/universities/${id}`)
+  return response.data
+}
+
 export default api

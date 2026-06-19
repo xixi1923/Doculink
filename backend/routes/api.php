@@ -6,6 +6,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\UniversityController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\DocumentManagementController;
@@ -32,6 +33,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/chats', [MessageController::class, 'getChats']);
     Route::get('/chats/{id}/messages', [MessageController::class, 'getMessages']);
     Route::post('/messages', [MessageController::class, 'sendMessage']);
+
+    Route::get('/universities', [UniversityController::class, 'index']);
+    Route::get('/universities/{id}', [UniversityController::class, 'show']);
 
     Route::get('/stats/home', [StatsController::class, 'homeStats']);
     Route::get('/documents', [DocumentController::class, 'index']);

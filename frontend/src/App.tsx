@@ -12,28 +12,26 @@ import BookReader from './pages/BookReader'
 import Search from './pages/Search'
 import Universities from './pages/Universities'
 import UniversityDetail from './pages/Universities/UniversityDetail'
-import Trending from './pages/Trending'
 import Profile from './pages/Profile'
 import Settings from './pages/Profile/Settings'
 import MyDocuments from './pages/Profile/MyDocuments'
-import CreateArticle from './pages/Articles/CreateArticle'
+import Community from './pages/Community'
 import AskQuestion from './pages/Community/AskQuestion'
+import QuestionDetail from './pages/Community/QuestionDetail'
 import DocumentDetail from './pages/DocumentDetail'
-import Messages from './pages/Messages'
 import Landing from './pages/Landing'
 import UploadDocument from './pages/UploadDocument'
-import Notifications from './pages/Notifications'
-import PublicProfile from './pages/PublicProfile'
 import HelpCenter from './pages/Support/HelpCenter'
 import ContactUs from './pages/Support/ContactUs'
 import TermsOfService from './pages/Legal/TermsOfService'
 import PrivacyPolicy from './pages/Legal/PrivacyPolicy'
-import RequestBook from './pages/RequestBook'
 import AdminLayout from './layouts/AdminLayout'
 import AdminDashboard from './pages/Admin/Dashboard'
 import AdminUsers from './pages/Admin/Users'
 import AdminDocuments from './pages/Admin/Documents'
+import AdminBooks from './pages/Admin/Books'
 import AdminCategories from './pages/Admin/Categories'
+import AdminUniversities from './pages/Admin/Universities'
 import AdminProfile from './pages/Admin/Profile'
 import AdminSettings from './pages/Admin/Settings'
 import { getProfile } from '@/api/authApi'
@@ -105,30 +103,29 @@ function App() {
         <Route path="books/:id/read" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <BookReader />} />
         <Route path="universities" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Universities />} />
         <Route path="universities/:id" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <UniversityDetail />} />
-        <Route path="trending" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Trending />} />
         <Route path="search" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Search />} />
         <Route path="profile" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Profile />} />
         <Route path="profile/settings" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Settings />} />
         <Route path="profile/documents" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <MyDocuments />} />
-        <Route path="articles/create" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <CreateArticle />} />
+        <Route path="community" element={<Community />} />
         <Route path="community/ask" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <AskQuestion />} />
+        <Route path="community/questions/:slug" element={<QuestionDetail />} />
         <Route path="documents/:id" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <DocumentDetail />} />
-        <Route path="messages" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Messages />} />
         <Route path="upload" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <UploadDocument />} />
-        <Route path="notifications" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Notifications />} />
-        <Route path="profile/:id" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <PublicProfile />} />
         <Route path="help" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <HelpCenter />} />
         <Route path="contact" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <ContactUs />} />
         <Route path="terms" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <TermsOfService />} />
         <Route path="privacy" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <PrivacyPolicy />} />
-        <Route path="request-book" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <RequestBook />} />
       </Route>
 
       <Route path="admin" element={adminElement}>
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="documents" element={<AdminDocuments />} />
+        <Route path="books" element={<AdminBooks />} />
+        <Route path="upload" element={<UploadDocument />} />
         <Route path="categories" element={<AdminCategories />} />
+        <Route path="universities" element={<AdminUniversities />} />
         <Route path="profile" element={<AdminProfile />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route index element={<Navigate to="dashboard" replace />} />

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class FirebaseAuthController extends Controller
@@ -15,35 +14,31 @@ class FirebaseAuthController extends Controller
         $request->validate([
             'email' => 'required|string|email|max:255',
             'name' => 'nullable|string|max:255',
+            'uid' => 'nullable|string',
         ]);
 
-        $existingRole = User::where('email', $request->email)->value('role');
-        $role = $existingRole ?? 'student';
+        $user = User::where('email', $request->email)->first();
 
-        $user = User::updateOrCreate(
-            [
-                'email' => $request->email,
-            ],
-            [
+        if (!$user) {
+            $user = User::create([
                 'name' => $request->name ?? 'User',
-                'role' => $role,
-                'password' => Hash::make(Str::random(40)),
-            ]
-        );
-
-        if (!$user->hasRole($role)) {
-            $user->syncRoles($role);
+                'email' => $request->email,
+                'role' => 'user',
+                'firebase_uid' => $request->uid,
+                'password' => null,
+                'status' => 'active'
+            ]);
+        } else {
+            if (!$user->firebase_uid && $request->uid) {
+                $user->firebase_uid = $request->uid;
+                $user->save();
+            }
         }
 
         $token = $user->createToken('firebase-login')->plainTextToken;
 
         return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-            ],
+            'user' => $user,
             'token' => $token,
         ]);
     }

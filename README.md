@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # DocuLink - Educational Document Sharing Platform
 
 **DocuLink** is a document-sharing and learning platform designed specifically for Cambodian high school and university students, inspired by Studocu.
@@ -33,16 +33,11 @@
 DocuLink/
 ├── frontend/          # React frontend
 ├── backend/           # Laravel REST API
-├── docker-compose.yml # Docker configuration
 └── README.md          # This file
 ```
 
 ## 🚀 Installation & Setup
 
-### Using Docker (Recommended)
-```bash
-docker-compose up -d --build
-```
 Access the app at `http://localhost:3000` and API at `http://localhost:8000`.
 
 ### Local Manual Setup
@@ -69,8 +64,5 @@ npm run dev
 - **Email**: `admin@doculink.com`
 - **Password**: `password`
 
-## 📄 License
-MIT License. Created for the Cambodian student community.
-=======
 # Doculink
->>>>>>> f49298b549e1cb113059c8cf9cc606c0f0f9e805
+

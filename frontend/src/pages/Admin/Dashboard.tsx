@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getAdminDashboard } from '@/api/adminApi'
-import { Activity, FolderOpen, Users, Layers, CheckCircle2, Clock, XCircle } from 'lucide-react'
+import { Activity, FolderOpen, Users, Layers, CheckCircle2, Clock, XCircle, BookOpen, Building2 } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [data, setData] = useState<any>(null)
@@ -66,11 +66,12 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {[
           { label: 'Users', value: data.stats.users_count, icon: Users },
           { label: 'Documents', value: data.stats.documents_count, icon: FolderOpen },
-          { label: 'Categories', value: data.stats.categories_count, icon: Layers },
+          { label: 'Books', value: data.stats.books_count, icon: BookOpen },
+          { label: 'Universities', value: data.stats.universities_count, icon: Building2 },
           { label: 'Approved', value: data.stats.approved_documents, icon: CheckCircle2 },
         ].map((item) => (
           <div key={item.label} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

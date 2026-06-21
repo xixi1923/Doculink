@@ -5,9 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * @mixin \Eloquent
- */
 class Document extends Model
 {
     use HasFactory;
@@ -15,22 +12,19 @@ class Document extends Model
     protected $fillable = [
         'title',
         'description',
-        'subject',
-        'school',
-        'university',
-        'major',
-        'grade',
-        'semester',
-        'category_id',
-        'user_id',
-        'thumbnail',
         'file_path',
+        'thumbnail',
         'file_type',
+        'file_size',
+        'category_id',
+        'university_id',
+        'user_id',
+        'subject',
+        'course_code',
+        'tags',
         'status',
-        'visibility',
-        'views_count',
-        'downloads_count',
-        'is_featured',
+        'view_count',
+        'download_count',
     ];
 
     public function user()
@@ -38,14 +32,14 @@ class Document extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function university()
+    {
+        return $this->belongsTo(University::class);
+    }
+
     public function category()
     {
         return $this->belongsTo(Category::class);
-    }
-
-    public function tags()
-    {
-        return $this->belongsToMany(Tag::class);
     }
 
     public function comments()
@@ -53,18 +47,8 @@ class Document extends Model
         return $this->morphMany(Comment::class, 'commentable');
     }
 
-    public function likes()
-    {
-        return $this->hasMany(Like::class);
-    }
-
     public function favorites()
     {
         return $this->hasMany(Favorite::class);
-    }
-
-    public function reports()
-    {
-        return $this->hasMany(Report::class);
     }
 }

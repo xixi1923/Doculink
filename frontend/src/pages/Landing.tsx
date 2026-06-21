@@ -66,7 +66,7 @@ const CORE_FEATURES: FeatureItem[] = [
   },
   {
     title: 'Community Driven',
-    desc: 'Follow your favorite top contributors and stay updated instantly with their latest uploads.',
+    desc: 'Find reliable academic resources shared by qualified students and educators.',
     icon: Users,
     gradient: 'from-violet-500 to-indigo-400'
   },
@@ -79,7 +79,7 @@ const POPULAR_DECKS: DocumentDeck[] = [
 
 const WORKFLOW_STEPS: WorkflowItem[] = [
   { text: 'Search by School & Major', desc: 'Filter documents directly matching your campus.' },
-  { text: 'Follow Top Contributors', desc: 'Stay in the loop with honor-roll students.' },
+  { text: 'Find Trusted Contributors', desc: 'See materials uploaded by verified peers and instructors.' },
   { text: 'Fast PDF/DOCX Exports', desc: 'One-click clean layouts ready to read anywhere.' },
   { text: 'Verified Study Decks', desc: 'Materials vetted by active community moderators.' }
 ]

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Plus, FileText, PenTool, MessageSquare, ChevronDown } from 'lucide-react'
+import { Plus, FileText, MessageSquare, ChevronDown } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 export default function CreateMenu() {
@@ -19,7 +19,6 @@ export default function CreateMenu() {
 
   const items = [
     { label: 'Upload Document', icon: FileText, path: '/upload', color: 'text-blue-500' },
-    { label: 'Write Article', icon: PenTool, path: '/articles/create', color: 'text-green-500' },
     { label: 'Ask Question', icon: MessageSquare, path: '/community/ask', color: 'text-purple-500' },
   ]
 

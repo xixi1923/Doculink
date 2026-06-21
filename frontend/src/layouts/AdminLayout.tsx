@@ -1,14 +1,16 @@
 import { NavLink, Outlet, Link, useNavigate } from 'react-router-dom'
-import { ShieldCheck, Users, FileText, Layers, Home, Bell, User, Settings, LogOut } from 'lucide-react'
+import { ShieldCheck, Users, FileText, Layers, Home, Bell, User, Settings, LogOut, Building2, BookOpen } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { getAdminDashboard } from '@/api/adminApi'
+import LogoutModal from '../components/LogoutModal'
 
 const navItems = [
   { label: 'Dashboard', path: 'dashboard', icon: Home, statKey: 'users_count' },
   { label: 'Users', path: 'users', icon: Users, statKey: 'users_count' },
   { label: 'Documents', path: 'documents', icon: FileText, statKey: 'documents_count' },
-  { label: 'Categories', path: 'categories', icon: Layers, statKey: 'categories_count' },
+  { label: 'Books', path: 'books', icon: BookOpen, statKey: 'books_count' },
+  { label: 'Universities', path: 'universities', icon: Building2, statKey: 'universities_count' },
   { label: 'My Profile', path: 'profile', icon: User },
   { label: 'Security Settings', path: 'settings', icon: Settings },
 ]
@@ -19,10 +21,12 @@ export default function AdminLayout() {
   const [stats, setStats] = useState<Record<string, number>>({})
   const [loadingStats, setLoadingStats] = useState(true)
   const [statsError, setStatsError] = useState<string | null>(null)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
-  const handleLogout = () => {
+  const handleLogoutConfirm = () => {
     logout()
     navigate('/')
+    setShowLogoutModal(false)
   }
 
   useEffect(() => {
@@ -51,21 +55,21 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="bg-gradient-to-r from-slate-900 via-teal-900 to-slate-900 text-white py-6 shadow-2xl">
         <div className="container mx-auto flex flex-col gap-4 md:flex-row md:items-center md:justify-between px-4">
-          <div>
+          <Link to="/" className="hover:opacity-90 transition-opacity">
             <p className="text-sm uppercase tracking-[0.4em] text-teal-300 mb-2">Admin Console</p>
             <h1 className="text-3xl font-black tracking-tight">DocuLink Control Center</h1>
             <p className="mt-2 text-sm text-slate-300 max-w-2xl">
-              Manage users, document approvals, and site analytics from one secure admin interface.
+              Manage users, document library, and site analytics from one secure admin interface.
             </p>
-          </div>
+          </Link>
           <Link to="profile" className="rounded-3xl border border-white/10 bg-white/5 px-5 py-4 shadow-lg shadow-teal-950/20 max-w-sm hover:bg-white/10 transition-all group">
             <div className="flex items-center justify-between gap-4">
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs uppercase tracking-[0.35em] text-teal-300">Signed in as</p>
-                <p className="text-base font-semibold group-hover:text-teal-300 transition-colors">{user?.name || 'Administrator'}</p>
+                <p className="text-base font-semibold group-hover:text-teal-300 transition-colors truncate">{user?.name || 'Administrator'}</p>
                 <p className="text-sm text-slate-300 truncate">{user?.email}</p>
               </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-teal-500 text-white shadow-inner shadow-teal-900/30">
+              <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-teal-500 text-white shadow-inner shadow-teal-900/30 shrink-0">
                 <ShieldCheck size={20} />
               </div>
             </div>
@@ -115,7 +119,7 @@ export default function AdminLayout() {
             })}
 
             <button
-              onClick={handleLogout}
+              onClick={() => setShowLogoutModal(true)}
               className="w-full flex items-center gap-3 rounded-3xl px-4 py-3 text-sm font-semibold text-rose-400 hover:bg-rose-500/10 transition-all mt-4"
             >
               <LogOut size={18} />
@@ -134,15 +138,21 @@ export default function AdminLayout() {
               <p className="text-sm font-semibold uppercase tracking-[0.2em]">Admin Alerts</p>
             </div>
             <p className="mt-3 text-sm text-slate-400">
-              New reports, risks, and moderation requests appear here. This section is reserved for site control actions only.
+              This section is reserved for system control only. Maintain data integrity at all times.
             </p>
           </div>
         </aside>
 
-        <main className="rounded-[32px] border border-slate-800 bg-slate-900/95 p-8 shadow-2xl shadow-slate-950/40">
+        <main className="rounded-[32px] border border-slate-800 bg-slate-900/95 p-8 shadow-2xl shadow-slate-950/40 overflow-hidden">
           <Outlet />
         </main>
       </div>
+
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogoutConfirm}
+      />
     </div>
   )
 }

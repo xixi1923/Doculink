@@ -2,17 +2,22 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * @mixin \Eloquent
- */
 class Category extends Model
 {
-    protected $fillable = ['name', 'slug', 'description'];
+    use HasFactory;
+
+    protected $fillable = ['name', 'slug', 'description', 'icon'];
 
     public function documents()
     {
         return $this->hasMany(Document::class);
+    }
+
+    public function books()
+    {
+        return $this->hasMany(Book::class);
     }
 }

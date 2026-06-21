@@ -1,5 +1,4 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Bell, MessageSquare } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import CreateMenu from './CreateMenu'
 import UserDropdown from './UserDropdown'
@@ -12,8 +11,8 @@ export default function Navbar() {
   const navLinks = [
     { label: 'Documents', path: '/search' },
     { label: 'Books', path: '/books' },
-    { label: 'Education', path: '/universities' },
-    { label: 'Trending', path: '/trending' },
+    { label: 'Universities', path: '/universities' },
+    { label: 'Community', path: '/community' },
   ]
 
   return (
@@ -51,22 +50,6 @@ export default function Navbar() {
           {token ? (
             <div className="flex items-center gap-4 md:gap-6">
               <CreateMenu />
-              <div className="flex items-center gap-1">
-                <Link
-                  to="/messages"
-                  className="text-gray-400 dark:text-gray-500 hover:text-primary relative p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all"
-                >
-                  <MessageSquare size={22} />
-                  <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-primary border-2 border-white dark:border-gray-900 rounded-full"></span>
-                </Link>
-                <Link
-                  to="/notifications"
-                  className="text-gray-400 dark:text-gray-500 hover:text-primary relative p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all"
-                >
-                  <Bell size={22} />
-                  <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-gray-900 rounded-full"></span>
-                </Link>
-              </div>
               <div className="h-8 w-px bg-gray-100 dark:bg-gray-800 hidden md:block"></div>
               <UserDropdown />
             </div>

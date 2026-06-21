@@ -6,25 +6,22 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Spatie\Permission\Traits\HasRoles;
 
-/**
- * @mixin \Eloquent
- */
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
+        'firebase_uid',
         'name',
         'email',
         'password',
         'avatar',
         'bio',
-        'school',
-        'university',
+        'university_id',
         'major',
         'role',
+        'status',
     ];
 
     protected $hidden = [
@@ -40,19 +37,29 @@ class User extends Authenticatable
         ];
     }
 
+    public function university()
+    {
+        return $this->belongsTo(University::class);
+    }
+
     public function documents()
     {
         return $this->hasMany(Document::class);
     }
 
-    public function comments()
+    public function books()
     {
-        return $this->hasMany(Comment::class);
+        return $this->hasMany(Book::class, 'uploaded_by');
     }
 
-    public function likes()
+    public function questions()
     {
-        return $this->hasMany(Like::class);
+        return $this->hasMany(Question::class);
+    }
+
+    public function answers()
+    {
+        return $this->hasMany(Answer::class);
     }
 
     public function favorites()
@@ -60,13 +67,8 @@ class User extends Authenticatable
         return $this->hasMany(Favorite::class);
     }
 
-    public function followers()
+    public function downloadLogs()
     {
-        return $this->hasMany(Follow::class, 'following_id');
-    }
-
-    public function following()
-    {
-        return $this->hasMany(Follow::class, 'follower_id');
+        return $this->hasMany(DownloadLog::class);
     }
 }

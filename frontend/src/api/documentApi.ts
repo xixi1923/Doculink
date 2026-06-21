@@ -11,8 +11,6 @@ export const getDocumentById = async (id: string) => {
 }
 
 export const uploadDocument = async (formData: FormData) => {
-  const response = await api.post('/documents', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
+  const response = await api.post('/documents', formData)
   return response.data
 }

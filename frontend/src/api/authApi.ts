@@ -14,6 +14,18 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
 export const login = async (credentials: any) => {
   const response = await api.post('/login', credentials)
   return response.data
@@ -40,11 +52,7 @@ export const updateProfile = async (userData: any) => {
 }
 
 export const updateAvatar = async (formData: FormData) => {
-  const response = await api.post('/profile/avatar', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  })
+  const response = await api.post('/profile/avatar', formData)
   return response.data
 }
 
@@ -58,38 +66,8 @@ export const deleteAccountApi = async () => {
   return response.data
 }
 
-export const getNotifications = async () => {
-  const response = await api.get('/notifications')
-  return response.data
-}
-
-export const markNotificationAsRead = async (id: string) => {
-  const response = await api.post(`/notifications/${id}/read`)
-  return response.data
-}
-
-export const markAllNotificationsAsRead = async () => {
-  const response = await api.post('/notifications/read-all')
-  return response.data
-}
-
-export const deleteNotificationApi = async (id: string) => {
-  const response = await api.delete(`/notifications/${id}`)
-  return response.data
-}
-
-export const getChats = async () => {
-  const response = await api.get('/chats')
-  return response.data
-}
-
-export const getMessages = async (id: number) => {
-  const response = await api.get(`/chats/${id}/messages`)
-  return response.data
-}
-
-export const sendMessageApi = async (data: { receiver_id: number, message: string }) => {
-  const response = await api.post('/messages', data)
+export const toggleFavoriteApi = async (data: { document_id?: number, book_id?: number }) => {
+  const response = await api.post('/favorites/toggle', data)
   return response.data
 }
 

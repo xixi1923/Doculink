@@ -8,8 +8,6 @@ export interface User {
   university?: string;
   major?: string;
   bio?: string;
-  followers_count?: number;
-  following_count?: number;
   documents_count?: number;
 }
 

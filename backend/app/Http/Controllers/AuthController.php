@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Storage;
 
 class AuthController extends Controller
 {
@@ -22,12 +23,8 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'student',
+            'role' => 'user',
         ]);
-
-        if (!$user->hasRole('student')) {
-            $user->syncRoles('student');
-        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -47,12 +44,6 @@ class AuthController extends Controller
         }
 
         $user = User::where('email', $request->email)->firstOrFail();
-
-        $roleToSync = $user->role ?? 'student';
-        if (!$user->hasRole($roleToSync)) {
-            $user->syncRoles($roleToSync);
-        }
-
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -65,12 +56,29 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
-        return response()->json(['message' => 'Logged out']);
+        return response()->json(['message' => 'Logged out successfully']);
     }
 
     public function me(Request $request)
     {
-        return response()->json($request->user()->loadCount(['followers', 'following', 'documents']));
+        $user = $request->user()->load([
+            'documents',
+            'books',
+            'favorites.document',
+            'favorites.book',
+            'university'
+        ]);
+
+        // Calculate stats
+        $totalDownloads = $user->documents()->sum('download_count') + $user->books()->sum('download_count');
+
+        return response()->json([
+            'user' => $user,
+            'stats' => [
+                'total_uploads' => $user->documents()->count() + $user->books()->count(),
+                'total_downloads' => $totalDownloads,
+            ]
+        ]);
     }
 
     public function updateProfile(Request $request)
@@ -81,16 +89,15 @@ class AuthController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
             'bio' => 'nullable|string|max:1000',
-            'school' => 'nullable|string|max:255',
-            'university' => 'nullable|string|max:255',
+            'university_id' => 'nullable|exists:universities,id',
             'major' => 'nullable|string|max:255',
         ]);
 
-        $user->update($request->only(['name', 'email', 'bio', 'school', 'university', 'major']));
+        $user->update($request->only(['name', 'email', 'bio', 'university_id', 'major']));
 
         return response()->json([
             'message' => 'Profile updated successfully',
-            'user' => $user->loadCount(['followers', 'following', 'documents']),
+            'user' => $user,
         ]);
     }
 
@@ -103,23 +110,21 @@ class AuthController extends Controller
         $user = $request->user();
 
         if ($request->hasFile('avatar')) {
-            // លុបរូបចាស់បើវាមាននៅលើ R2
+            // Delete old avatar if exists in R2
             if ($user->avatar) {
                 $oldPath = parse_url($user->avatar, PHP_URL_PATH);
                 $oldPath = ltrim($oldPath, '/');
-                if ($oldPath && \Illuminate\Support\Facades\Storage::disk('r2')->exists($oldPath)) {
-                    \Illuminate\Support\Facades\Storage::disk('r2')->delete($oldPath);
+                if ($oldPath && Storage::disk('r2')->exists($oldPath)) {
+                    Storage::disk('r2')->delete($oldPath);
                 }
             }
 
-            // បង្ហោះរូបថ្មីទៅកាន់ Cloudflare R2
             $file = $request->file('avatar');
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $path = 'avatars/' . $filename;
 
-            \Illuminate\Support\Facades\Storage::disk('r2')->put($path, file_get_contents($file));
+            Storage::disk('r2')->put($path, file_get_contents($file));
 
-            // បង្កើត Public URL
             $publicUrl = rtrim(config('filesystems.disks.r2.url'), '/') . '/' . $path;
 
             $user->avatar = $publicUrl;
@@ -128,7 +133,7 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Avatar updated successfully',
                 'url' => $publicUrl,
-                'user' => $user->loadCount(['followers', 'following', 'documents'])
+                'user' => $user
             ]);
         }
 
@@ -146,33 +151,32 @@ class AuthController extends Controller
 
         if (!Hash::check($request->current_password, $user->password)) {
             return response()->json([
-                'message' => 'Password បច្ចុប្បន្នមិនត្រឹមត្រូវទេ'
+                'message' => 'Current password is incorrect'
             ], 422);
         }
 
         $user->password = Hash::make($request->new_password);
         $user->save();
 
-        return response()->json(['message' => 'ផ្លាស់ប្តូរ Password ជោគជ័យ!']);
+        return response()->json(['message' => 'Password changed successfully']);
     }
 
     public function deleteAccount(Request $request)
     {
         $user = $request->user();
 
-        // លុបរូបភាពចេញពី R2 បើមាន
+        // Delete avatar from R2 if exists
         if ($user->avatar) {
             $oldPath = parse_url($user->avatar, PHP_URL_PATH);
             $oldPath = ltrim($oldPath, '/');
-            if (\Illuminate\Support\Facades\Storage::disk('r2')->exists($oldPath)) {
-                \Illuminate\Support\Facades\Storage::disk('r2')->delete($oldPath);
+            if ($oldPath && Storage::disk('r2')->exists($oldPath)) {
+                Storage::disk('r2')->delete($oldPath);
             }
         }
 
-        // លុប Token ទាំងអស់ និងលុប User
         $user->tokens()->delete();
         $user->delete();
 
-        return response()->json(['message' => 'គណនីត្រូវបានលុបដោយជោគជ័យ']);
+        return response()->json(['message' => 'Account deleted successfully']);
     }
 }

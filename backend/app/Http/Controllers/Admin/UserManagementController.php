@@ -23,10 +23,12 @@ class UserManagementController extends Controller
         $user = User::findOrFail($id);
 
         if ($user->role === 'admin') {
-            $user->role = 'student';
-            $user->syncRoles('student');
-            $user->save();
+            $user->role = 'user';
+        } else {
+            $user->role = 'admin';
         }
+
+        $user->save();
 
         return Response::json(['message' => 'User role updated', 'user' => $user]);
     }

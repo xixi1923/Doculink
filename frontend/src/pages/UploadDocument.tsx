@@ -1,283 +1,381 @@
-import React, { useState } from 'react'
-import { Upload, FileText, X, CheckCircle2, Info, ArrowRight, ShieldCheck, Globe, EyeOff, Lock, ArrowUpRight, Book } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import {
+  UploadCloud,
+  FileText,
+  BookOpen,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  ChevronRight,
+  ArrowLeft
+} from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { getCategories } from '@/api/categoryApi'
+import api from '@/api/authApi'
+import { useAuthStore } from '@/store/authStore'
 
-// ================= TYPES & INTERFACES =================
-interface VisibilityOption {
-  id: 'public' | 'unlisted' | 'private';
-  label: string;
-  icon: React.ComponentType<{ size: number; className?: string }>;
-  desc: string;
-}
-
-interface GuidelineItem {
-  title: string;
-  desc: string;
-}
+type UploadType = 'document' | 'book';
 
 export default function UploadDocument(): React.JSX.Element {
+  const navigate = useNavigate()
+  const { user } = useAuthStore()
+  const isAdmin = user?.role === 'admin'
+  const [uploadType, setUploadType] = useState<UploadType>('document')
+  const [categories, setCategories] = useState<any[]>([])
+  const [universities, setUniversities] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<string[]>([])
+
+  // Form State
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    category_id: '',
+    university_id: '',
+    subject: '',
+    course_code: '',
+    author: '',
+    publisher: '',
+    publication_year: '',
+    isbn: '',
+  })
   const [file, setFile] = useState<File | null>(null)
-  const [dragActive, setDragActive] = useState<boolean>(false)
-  const [step, setStep] = useState<number>(1)
-  const [visibility, setVisibility] = useState<string>('public')
+  const [cover, setCover] = useState<File | null>(null)
 
-  const visibilityOptions: VisibilityOption[] = [
-    { id: 'public', label: 'Public', icon: Globe, desc: 'Anyone can see and download' },
-    { id: 'unlisted', label: 'Unlisted', icon: EyeOff, desc: 'Anyone with the link can view' },
-    { id: 'private', label: 'Private', icon: Lock, desc: 'Only you can see this document' },
-  ]
-
-  const guidelines: GuidelineItem[] = [
-    { title: 'High Quality Assets', desc: 'Ensure text layouts are legible and images/slides are clear.' },
-    { title: 'Educational Value', desc: 'Only upload materials, summaries, or books that help students learn.' },
-    { title: 'Original & Permitted', desc: 'Ensure you have the rights to share the uploaded content.' }
-  ]
-
-  const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true)
-    } else if (e.type === "dragleave") {
-      setDragActive(false)
-    }
-  }
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragActive(false)
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setFile(e.dataTransfer.files[0])
-      setStep(2)
-    }
-  }
+  useEffect(() => {
+    getCategories().then(setCategories)
+    api.get('/universities').then(res => setUniversities(res.data))
+  }, [])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0])
-      setStep(2)
     }
   }
 
-  return (
-    <div className="max-w-6xl mx-auto py-10 px-4 sm:px-6 text-slate-800 font-sans selection:bg-teal-500 selection:text-white">
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setCover(e.target.files[0])
+    }
+  }
 
-      {/* ================= HEADER SECTION ================= */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 border-b border-slate-100 pb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Share Your Resources</h1>
-          <p className="text-slate-400 mt-1 text-xs sm:text-sm font-medium">Help fellow high school and university students by uploading books and study materials.</p>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!file) return setError('Please select a file to upload.')
+
+    setLoading(true)
+    setError('')
+    setFieldErrors([])
+
+    const data = new FormData()
+
+    // Append fields
+    Object.entries(formData).forEach(([key, value]) => {
+        if (value) data.append(key, value)
+    })
+
+    // Append files
+    data.append('file', file)
+    if (cover) data.append('cover', cover)
+
+    try {
+      const endpoint = uploadType === 'document' ? '/documents' : '/books'
+      await api.post(endpoint, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      setIsSuccess(true)
+      setTimeout(() => navigate(uploadType === 'document' ? '/profile' : '/books'), 3000)
+    } catch (err: any) {
+      console.error('Upload Error:', err)
+      const validationErrors = err.response?.data?.errors
+      if (validationErrors) {
+        const messages = Object.values(validationErrors).flat().map((message: any) => String(message))
+        setFieldErrors(messages)
+        setError('Please correct the highlighted fields below.')
+      } else {
+        setError(err.response?.data?.message || 'Upload failed. Please try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (isSuccess) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center text-center p-8 animate-in fade-in zoom-in duration-500">
+        <div className="w-20 h-20 bg-teal-500/10 text-teal-600 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-teal-500/10">
+          <CheckCircle2 size={40} />
         </div>
-        <div className="flex items-center gap-3 bg-gradient-to-br from-teal-50 to-sky-50 px-5 py-3 rounded-2xl border border-teal-100/40 shrink-0">
-           <ShieldCheck size={22} className="text-teal-600" />
-           <div>
-              <p className="font-black text-[10px] text-slate-800 uppercase tracking-widest">Safe & Secure</p>
-              <p className="text-[11px] text-teal-700 font-bold">Vetted Storage System</p>
-           </div>
-        </div>
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Upload Successful!</h1>
+        <p className="text-slate-600 max-w-sm font-medium">
+          Your academic asset has been logged into the DocuLink matrix. It will be visible once processed.
+        </p>
+        <p className="text-teal-700 font-bold text-xs uppercase tracking-widest mt-8 flex items-center gap-2">
+          Redirecting to your workspace <Loader2 size={14} className="animate-spin" />
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto py-10 px-4 sm:px-6 font-sans">
+      <Link to="/" className="inline-flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest mb-10 hover:text-teal-700 transition-colors">
+        <ArrowLeft size={16} /> Back to Hub
+      </Link>
+
+      <div className="mb-12">
+        <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-3">Asset Submission</h1>
+        <p className="text-slate-600 font-medium text-sm">Contribute your educational resources to the global network.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
 
-        {/* ================= LEFT MAIN INTERACTIVE PANEL ================= */}
-        <div className="lg:col-span-8 space-y-6">
+        {/* Step Navigation / Info */}
+        <aside className="space-y-6">
+          <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm">
+            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-8">Submission Mode</h3>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setUploadType('document')}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${uploadType === 'document' ? 'bg-teal-600 border-teal-600 text-white shadow-lg shadow-teal-600/20' : 'bg-slate-50 border-transparent text-slate-600 hover:bg-slate-100'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <FileText size={20} />
+                  <span className="font-bold text-sm">Course Document</span>
+                </div>
+                <ChevronRight size={16} />
+              </button>
 
-          {/* Premium Step Navigation Pill Indicators */}
-          <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 p-2.5 rounded-2xl max-w-fit">
-             {[1, 2].map((i: number) => (
-               <div key={i} className="flex items-center gap-2">
-                  <div className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                    step === i
-                      ? 'bg-gradient-to-r from-teal-500 to-sky-500 text-white shadow-md shadow-teal-500/10'
-                      : step > i ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400'
-                  }`}>
-                    {step > i ? <CheckCircle2 size={13} className="stroke-[3]" /> : <span>0{i}</span>}
-                    <span className="text-[11px] uppercase tracking-wider">{i === 1 ? 'Select File' : 'Asset Info'}</span>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setUploadType('book')}
+                  className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${uploadType === 'book' ? 'bg-teal-600 border-teal-600 text-white shadow-lg shadow-teal-600/20' : 'bg-slate-50 border-transparent text-slate-600 hover:bg-slate-100'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <BookOpen size={20} />
+                    <span className="font-bold text-sm">Full E-Book</span>
                   </div>
-                  {i < 2 && <div className="w-4 h-0.5 bg-slate-200 rounded-full" />}
-               </div>
-             ))}
-          </div>
-
-          {/* STEP 1: INITIAL FILE INTAKE ZONE */}
-          {step === 1 ? (
-            <div
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-              className={`relative aspect-video md:aspect-[21/9] rounded-[28px] border-2 border-dashed transition-all duration-300 flex flex-col items-center justify-center p-8 text-center group cursor-pointer ${
-                dragActive
-                  ? 'border-teal-500 bg-teal-50/40 scale-[1.005]'
-                  : 'border-slate-200 bg-white hover:border-teal-500/50 hover:bg-slate-50/50 shadow-xs'
-              }`}
-            >
-              <div className="w-14 h-14 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform shadow-xs">
-                <Upload size={24} className="stroke-[2.5]" />
-              </div>
-              <h2 className="text-base font-extrabold text-slate-800 mb-1 tracking-tight">Select a document or book to upload</h2>
-              <p className="text-slate-400 text-xs mb-6 font-medium">Support PDF, DOCX, PPTX, or high-quality images (JPG, PNG)</p>
-
-              <label className="px-6 py-2.5 bg-gradient-to-r from-teal-500 to-sky-500 hover:opacity-95 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm shadow-teal-500/10 transition-all cursor-pointer">
-                Choose File
-                <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png" />
-              </label>
+                  <ChevronRight size={16} />
+                </button>
+              )}
             </div>
-          ) : (
 
-            // STEP 2: METADATA FORM INTERFACE
-            <div className="bg-white rounded-[28px] border border-slate-100 p-6 sm:p-8 shadow-sm shadow-slate-200/50 animate-in fade-in zoom-in-98 duration-300">
-               {/* Attached Asset Meta Summary Bar */}
-               <div className="flex items-center justify-between mb-6 pb-5 border-b border-slate-100">
-                  <div className="flex items-center gap-3 min-w-0">
-                     <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center shrink-0">
-                       {file?.type.includes('image') ? <Upload size={20} /> : <FileText size={20} />}
-                     </div>
-                     <div className="min-w-0">
-                        <h3 className="font-bold text-sm text-slate-800 truncate pr-2">{file?.name}</h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                          {((file?.size || 0) / 1024) > 1024
-                            ? `${((file?.size || 0) / (1024 * 1024)).toFixed(1)} MB`
-                            : `${((file?.size || 0) / 1024).toFixed(0)} KB`} • {file?.type.split('/')[1].toUpperCase()} Resource
-                        </p>
-                     </div>
-                  </div>
-                  <button
-                    onClick={() => { setFile(null); setStep(1); }}
-                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                  >
-                    <X size={16} />
-                  </button>
-               </div>
-
-               {/* Meta Entry Form Field Matrices */}
-               <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Title / Subject</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Advanced Biology Textbook or Math Grade 12 Summary"
-                      className="w-full px-4 py-3 bg-slate-50/70 border border-slate-200/60 focus:border-teal-500 focus:bg-white rounded-xl outline-none text-xs text-slate-800 font-medium transition-all"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Category / Type</label>
-                      <div className="relative">
-                        <select className="w-full px-4 py-3 bg-slate-50/70 border border-slate-200/60 focus:border-teal-500 focus:bg-white rounded-xl outline-none text-xs text-slate-800 font-semibold transition-all appearance-none cursor-pointer">
-                          <option>Books & Textbooks</option>
-                          <option>Summaries</option>
-                          <option>Lecture Slides (PPTX)</option>
-                          <option>Exam Prep</option>
-                          <option>Practice Exercises</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Education Level / Institution</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Grade 12, RUPP, or ITC"
-                        className="w-full px-4 py-3 bg-slate-50/70 border border-slate-200/60 focus:border-teal-500 focus:bg-white rounded-xl outline-none text-xs text-slate-800 font-medium transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Description</label>
-                    <textarea
-                      rows={4}
-                      placeholder="Briefly describe what chapters, subjects, or concepts this resource covers..."
-                      className="w-full px-4 py-3 bg-slate-50/70 border border-slate-200/60 focus:border-teal-500 focus:bg-white rounded-xl outline-none text-xs text-slate-800 font-medium resize-none transition-all"
-                    ></textarea>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="w-full py-3 bg-gradient-to-r from-teal-500 to-sky-500 hover:opacity-95 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-md shadow-teal-500/10 transition-all flex items-center justify-center gap-2 mt-2"
-                  >
-                    Complete Resource Upload <ArrowRight size={14} />
-                  </button>
-               </form>
-            </div>
-          )}
-        </div>
-
-        {/* ================= RIGHT ASIDE UTILITIES / POLICY ================= */}
-        <div className="lg:col-span-4 space-y-6">
-
-           {/* Dynamic Visibility Scope Selector Cards */}
-           <div className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm shadow-slate-200/50 space-y-4">
-              <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider">
-                 Access Permissions
-              </h3>
-              <div className="space-y-2">
-                {visibilityOptions.map((opt: VisibilityOption) => {
-                  const IconComponent = opt.icon;
-                  const isSelected = visibility === opt.id;
-                  return (
-                    <label
-                      key={opt.id}
-                      className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-teal-500 bg-teal-50/30'
-                          : 'border-slate-100 bg-white hover:border-slate-200'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="visibility"
-                        className="hidden"
-                        checked={isSelected}
-                        onChange={() => setVisibility(opt.id)}
-                      />
-                      <IconComponent size={16} className={`mt-0.5 shrink-0 ${isSelected ? 'text-teal-600' : 'text-slate-400'}`} />
-                      <div className="min-w-0">
-                        <p className={`text-xs font-bold ${isSelected ? 'text-teal-700' : 'text-slate-700'}`}>{opt.label}</p>
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">{opt.desc}</p>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-           </div>
-
-           {/* Core Moderation Guidelines Checklist Box */}
-           <div className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm shadow-slate-200/50 space-y-4">
-              <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                <Info size={14} className="text-teal-600" /> Upload Rules
-              </h3>
-              <div className="space-y-4">
-                 {guidelines.map((item: GuidelineItem, idx: number) => (
-                   <div key={idx} className="flex gap-3 items-start">
-                      <div className="w-4 h-4 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5">
-                        ✓
-                      </div>
-                      <div>
-                         <p className="text-xs font-bold text-slate-700 leading-none">{item.title}</p>
-                         <p className="text-[11px] text-slate-400 mt-1 leading-normal font-normal">{item.desc}</p>
-                      </div>
-                   </div>
-                 ))}
-              </div>
-           </div>
-
-           {/* Brand Consistency Reward Card Asset */}
-           <div className="bg-[#1a1b2f] rounded-[24px] p-6 text-white shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
-
-              <h4 className="font-extrabold text-sm mb-1.5 tracking-tight">Earn Creator Points</h4>
-              <p className="text-[11px] text-slate-400 mb-5 leading-relaxed font-light">
-                Top verified uploaders get featured prominently on the education directory panels and unlock access modifiers.
+            {!isAdmin && (
+              <p className="mt-6 text-[10px] text-slate-500 leading-relaxed font-medium">
+                Note: Full book uploads are restricted to Administrative roles to maintain library quality and copyright compliance.
               </p>
-              <div className="inline-flex items-center gap-1 text-teal-400 font-bold text-[11px] uppercase tracking-wider cursor-pointer hover:text-teal-300 transition-colors group">
-                Learn rewards system
-                <ArrowUpRight size={12} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-           </div>
+            )}
+          </div>
+        </aside>
 
+        {/* Upload Form */}
+        <div className="lg:col-span-2">
+          <form onSubmit={handleSubmit} className="space-y-8">
+
+            {/* File Dropzone */}
+            <div className="relative group">
+              <input
+                type="file"
+                onChange={handleFileChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                accept={uploadType === 'document' ? '.pdf,.docx,.pptx,.png,.jpg,.jpeg' : '.pdf,.epub'}
+              />
+              <div className={`p-12 rounded-[40px] border-2 border-dashed transition-all flex flex-col items-center justify-center text-center ${file ? 'bg-teal-50 border-teal-600/50' : 'bg-slate-50 border-slate-200 group-hover:border-teal-600/30'}`}>
+                <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 ${file ? 'bg-teal-600 text-white' : 'bg-white text-slate-400'}`}>
+                  {file ? <CheckCircle2 size={32} /> : <UploadCloud size={32} />}
+                </div>
+                {file ? (
+                  <div>
+                    <p className="text-slate-900 font-bold text-sm">{file.name}</p>
+                    <p className="text-teal-700 text-[10px] font-black uppercase tracking-widest mt-1">Ready for Mapping</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-slate-900 font-bold mb-1 text-sm">Click or drag academic file</p>
+                    <p className="text-slate-500 text-[10px] font-medium uppercase tracking-widest">Supports PDF, DOCX, EPUB (Max 50MB)</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Metadata Fields */}
+            <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm space-y-6">
+               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Resource Metadata</h3>
+
+               <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Title</label>
+                  <input
+                    required
+                    value={formData.title}
+                    onChange={e => setFormData({...formData, title: e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none transition-all"
+                    placeholder="Enter descriptive resource title..."
+                  />
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Category</label>
+                    <select
+                      required
+                      value={formData.category_id}
+                      onChange={e => setFormData({...formData, category_id: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none appearance-none"
+                    >
+                      <option value="">Select Category</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">University</label>
+                    <select
+                      value={formData.university_id}
+                      onChange={e => setFormData({...formData, university_id: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none appearance-none"
+                    >
+                      <option value="">Select University (Optional)</option>
+                      {universities.map(uni => (
+                        <option key={uni.id} value={uni.id}>{uni.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {uploadType === 'book' ? (
+                    <>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Author</label>
+                        <input
+                          required
+                          value={formData.author}
+                          onChange={e => setFormData({...formData, author: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-600/20"
+                          placeholder="Original author name"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Publisher</label>
+                        <input
+                          value={formData.publisher}
+                          onChange={e => setFormData({...formData, publisher: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-600/20"
+                          placeholder="Publishing house..."
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">ISBN</label>
+                        <input
+                          value={formData.isbn}
+                          onChange={e => setFormData({...formData, isbn: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-600/20"
+                          placeholder="International Standard Book Number"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Release Year</label>
+                        <input
+                          type="number"
+                          value={formData.publication_year}
+                          onChange={e => setFormData({...formData, publication_year: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-600/20"
+                          placeholder="e.g. 2024"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Subject / Course</label>
+                        <input
+                          value={formData.subject}
+                          onChange={e => setFormData({...formData, subject: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-600/20"
+                          placeholder="e.g. Data Structures"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Course Code</label>
+                        <input
+                          value={formData.course_code}
+                          onChange={e => setFormData({...formData, course_code: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-600/20"
+                          placeholder="e.g. CS101"
+                        />
+                      </div>
+                    </>
+                  )}
+               </div>
+
+               <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Abstract / Description</label>
+                  <textarea
+                    rows={4}
+                    value={formData.description}
+                    onChange={e => setFormData({...formData, description: e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none resize-none focus:ring-2 focus:ring-teal-600/20"
+                    placeholder="Provide a brief summary of the contents..."
+                  />
+               </div>
+
+               {uploadType === 'book' && (
+                 <div className="space-y-1.5 pt-4">
+                   <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Cover Artwork (Optional)</label>
+                   <div className="flex items-center gap-4">
+                      <div className={`w-20 h-28 rounded-xl border-2 border-dashed flex items-center justify-center shrink-0 ${cover ? 'border-teal-600 bg-teal-50' : 'border-slate-200'}`}>
+                         {cover ? <img src={URL.createObjectURL(cover)} className="w-full h-full rounded-xl object-cover" alt="" /> : <BookOpen size={24} className="text-slate-300" />}
+                      </div>
+                      <input
+                        type="file"
+                        id="cover-upload"
+                        className="hidden"
+                        onChange={handleCoverChange}
+                        accept="image/*"
+                      />
+                      <label htmlFor="cover-upload" className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-teal-600 hover:text-white transition-all">
+                        Browse Artwork
+                      </label>
+                   </div>
+                 </div>
+               )}
+            </div>
+
+            {error && (
+              <div className="p-5 bg-rose-50 border border-rose-100 rounded-[24px] space-y-3 text-sm font-bold text-rose-600">
+                <div className="flex items-center gap-3">
+                  <AlertCircle size={20} />
+                  <span>{error}</span>
+                </div>
+                {fieldErrors.length > 0 && (
+                  <ul className="list-disc list-inside space-y-1 text-rose-700 font-normal">
+                    {fieldErrors.map((message, index) => (
+                      <li key={index}>{message}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-grow bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-black uppercase tracking-widest text-xs py-5 rounded-[24px] shadow-xl shadow-teal-600/20 transition-all flex items-center justify-center gap-3"
+              >
+                {loading ? <Loader2 className="animate-spin" size={20} /> : <UploadCloud size={20} />}
+                {loading ? 'Submitting to Matrix...' : `Broadcast ${uploadType}`}
+              </button>
+            </div>
+          </form>
         </div>
+
       </div>
     </div>
   )

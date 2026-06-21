@@ -39,6 +39,7 @@ export default function Register() {
       const response = await firebaseLogin({
         email: user.email,
         name: user.displayName || name,
+        uid: user.uid,
       })
       setAuth(response.user, response.token)
 
@@ -62,6 +63,7 @@ export default function Register() {
       const response = await firebaseLogin({
         email: user.email,
         name: user.displayName,
+        uid: user.uid,
       })
       setAuth(response.user, response.token)
       navigate('/')
@@ -114,7 +116,7 @@ export default function Register() {
           </div>
 
           <p className="text-gray-400 dark:text-gray-500 text-xs text-center mb-10 leading-relaxed max-w-[300px] mx-auto">
-            Create an account to upload documents, follow top contributors, and save your favorites.
+            Create an account to upload documents and save your favorites.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6 max-w-[350px] mx-auto w-full">

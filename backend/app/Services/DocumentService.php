@@ -30,12 +30,22 @@ class DocumentService
 
         $data['file_path'] = $publicUrl;
         $data['file_type'] = $file->getClientOriginalExtension();
+        $data['file_size'] = number_format($file->getSize() / 1024 / 1024, 2) . ' MB';
 
         return $this->documentRepository->create($data);
     }
 
     public function getDocumentDetails($id)
     {
-        return $this->documentRepository->findById($id, ['*'], ['user', 'category', 'comments.user', 'tags']);
+        return $this->documentRepository->findById($id, ['*'], ['user', 'category', 'university', 'comments.user']);
+    }
+
+    public function addComment($documentId, $userId, $content)
+    {
+        $document = $this->documentRepository->findById($documentId);
+        return $document->comments()->create([
+            'user_id' => $userId,
+            'content' => $content
+        ]);
     }
 }

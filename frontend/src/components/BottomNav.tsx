@@ -1,4 +1,4 @@
-import { Home, Search, MessageSquare, User, Bell } from 'lucide-react'
+import { Home, Search, User, BookOpen } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 
@@ -8,9 +8,8 @@ export default function BottomNav() {
 
   const navItems = [
     { label: 'Home', path: '/', icon: Home },
-    { label: 'Search', path: '/search', icon: Search },
-    { label: 'Chat', path: '/messages', icon: MessageSquare },
-    { label: 'Alerts', path: '/notifications', icon: Bell },
+    { label: 'Explore', path: '/search', icon: Search },
+    { label: 'Library', path: '/books', icon: BookOpen },
     { label: 'Profile', path: token ? '/profile' : '/login', icon: User },
   ]
 

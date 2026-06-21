@@ -11,12 +11,19 @@ class University extends Model
 
     protected $fillable = [
         'name',
-        'location',
-        'image',
-        'students_count',
-        'rating',
+        'short_name',
+        'logo',
+        'cover_image',
         'description',
+        'website',
+        'location',
+        'established_year',
     ];
+
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
 
     public function documents()
     {

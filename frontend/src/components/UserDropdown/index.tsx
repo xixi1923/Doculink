@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { User, FileText, Heart, Download, Settings, LogOut, ChevronDown, ShieldCheck } from 'lucide-react'
+import { User, Heart, Settings, LogOut, ChevronDown, ShieldCheck, LayoutDashboard } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import LogoutModal from '../LogoutModal'
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
@@ -19,21 +21,33 @@ export default function UserDropdown() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const menuItems = [
-    { label: 'Profile', icon: User, path: '/profile' },
+  const isAdmin = user?.role === 'admin'
+
+  const userMenuItems = [
+    { label: 'My Workspace', icon: User, path: '/profile' },
+    { label: 'Saved Assets', icon: Heart, path: '/profile' },
     { label: 'Settings', icon: Settings, path: '/profile/settings' },
   ]
 
-  const handleLogout = () => {
+  const adminMenuItems = [
+    { label: 'Admin Console', icon: LayoutDashboard, path: '/admin/dashboard' },
+    { label: 'Personal Profile', icon: User, path: '/admin/profile' },
+    { label: 'Security Settings', icon: Settings, path: '/admin/settings' },
+  ]
+
+  const menuItems = isAdmin ? adminMenuItems : userMenuItems
+
+  const handleLogoutConfirm = () => {
     logout()
     navigate('/')
     setIsOpen(false)
+    setShowLogoutModal(false)
   }
 
   const [imageError, setImageError] = useState(false)
 
-  const userName = user?.displayName || user?.email || 'User'
-  const userAvatar = user?.photoURL || undefined
+  const userName = user?.name || user?.displayName || user?.email || 'User'
+  const userAvatar = user?.avatar || user?.photoURL || undefined
 
   const initials = userName
     ? userName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
@@ -63,8 +77,13 @@ export default function UserDropdown() {
       {isOpen && (
         <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden z-[60] animate-in fade-in zoom-in duration-200">
           <div className="p-4 bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-            <p className="font-bold text-gray-800 dark:text-white">{userName}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+            <div className="flex items-center justify-between mb-1">
+               <p className="font-bold text-gray-800 dark:text-white truncate max-w-[140px]">{userName}</p>
+               {isAdmin && (
+                 <span className="px-2 py-0.5 bg-teal-500 text-white text-[8px] font-black uppercase tracking-widest rounded-md">Admin</span>
+               )}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
           </div>
           <div className="p-2">
             {menuItems.map((item) => (
@@ -74,39 +93,16 @@ export default function UserDropdown() {
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors group"
               >
-                <item.icon size={18} className="text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors" />
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors">
+                <item.icon size={18} className="text-gray-400 dark:text-gray-500 group-hover:text-teal-500 transition-colors" />
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-teal-500 transition-colors">
                   {item.label}
                 </span>
               </Link>
             ))}
-            {user?.role === 'admin' && (
-              <Link
-                to="/admin/dashboard"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors group"
-              >
-                <ShieldCheck size={18} className="text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors" />
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors">
-                  Admin Panel
-                </span>
-              </Link>
-            )}
-            {user?.role !== 'admin' && (
-              <Link
-                to="/"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors group"
-              >
-                <User size={18} className="text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors" />
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors">
-                  User Home
-                </span>
-              </Link>
-            )}
+
             <div className="h-px bg-gray-100 dark:bg-gray-800 my-2 mx-2" />
             <button
-              onClick={handleLogout}
+              onClick={() => { setShowLogoutModal(true); setIsOpen(false); }}
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors group"
             >
               <LogOut size={18} className="text-gray-400 dark:text-gray-500 group-hover:text-red-500 transition-colors" />
@@ -117,6 +113,12 @@ export default function UserDropdown() {
           </div>
         </div>
       )}
+
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogoutConfirm}
+      />
     </div>
   )
 }

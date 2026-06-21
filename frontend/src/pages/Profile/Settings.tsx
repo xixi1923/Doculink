@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   User,
-  Bell,
   Lock,
   Eye,
   Globe,
@@ -16,7 +15,7 @@ import { User as UserType } from '@/types'
 import { useAuthStore } from '@/store/authStore'
 
 // ================= TYPES & INTERFACES =================
-type SettingSection = 'profile' | 'account' | 'notifications' | 'privacy';
+type SettingSection = 'profile' | 'account' | 'privacy';
 
 interface MenuItem {
   id: SettingSection;
@@ -44,12 +43,6 @@ export default function Settings(): React.JSX.Element {
     new_password_confirmation: ''
   })
   const [isChangingPassword, setIsChangingPassword] = useState(false)
-  const [notifications, setNotifications] = useState({
-    peerReleases: true,
-    directComms: true,
-    diagnostics: false,
-    mentions: true
-  })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { setAuth, token, logout } = useAuthStore()
@@ -187,7 +180,6 @@ export default function Settings(): React.JSX.Element {
   const menuItems: MenuItem[] = [
     { id: 'profile', label: 'Edit Profile', icon: User },
     { id: 'account', label: 'Account Settings', icon: Lock },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'privacy', label: 'Privacy & Security', icon: Shield },
   ]
 
@@ -480,40 +472,6 @@ export default function Settings(): React.JSX.Element {
               </div>
             )}
 
-            {/* 3. NOTIFICATIONS PREFERENCES LAYER */}
-            {activeSection === 'notifications' && (
-              <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in duration-300">
-                 <section>
-                    <h2 className="text-base font-black text-slate-900 dark:text-white mb-6">Channel Preferences</h2>
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                       {[
-                         { id: 'peerReleases', title: 'Peer Material Releases', desc: 'Alert when contributors inside your active network log files' },
-                         { id: 'directComms', title: 'Direct Communications', desc: 'Ping alerts when peer inquiries route through internal discussions' },
-                         { id: 'diagnostics', title: 'DocuLink Network Diagnostics', desc: 'General patch updates regarding education schema additions' },
-                         { id: 'mentions', title: 'Workspace Mentions', desc: 'Receive instant feedback loops when your profile handle is cited' },
-                       ].map((item) => (
-                         <div key={item.id} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
-                            <div className="pr-4">
-                               <h4 className="text-xs font-extrabold text-slate-900 dark:text-white leading-normal">{item.title}</h4>
-                               <p className="text-[11px] text-slate-400 mt-0.5 font-light leading-normal">{item.desc}</p>
-                            </div>
-
-                            {/* Native Toggle Switch Container Framework */}
-                            <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                              <input
-                                type="checkbox"
-                                className="sr-only peer"
-                                checked={(notifications as any)[item.id]}
-                                onChange={() => setNotifications(prev => ({ ...prev, [item.id]: !(prev as any)[item.id] }))}
-                              />
-                              <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
-                            </label>
-                         </div>
-                       ))}
-                    </div>
-                 </section>
-              </div>
-            )}
 
             {/* 4. PRIVACY CONTROLS LAYER */}
             {activeSection === 'privacy' && (

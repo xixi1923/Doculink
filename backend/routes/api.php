@@ -4,9 +4,10 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\StatsController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\MessageController;
 use App\Http\Controllers\UniversityController;
+use App\Http\Controllers\CommunityController;
+use App\Http\Controllers\BookController;
+use App\Http\Controllers\SocialController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\DocumentManagementController;
@@ -17,6 +18,19 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/firebase-login', [FirebaseAuthController::class, 'login']);
+
+// Guest Access Routes (Read-only)
+Route::get('/universities', [UniversityController::class, 'index']);
+Route::get('/universities/{id}', [UniversityController::class, 'show']);
+Route::get('/books', [BookController::class, 'index']);
+Route::get('/books/categories', [BookController::class, 'categories']);
+Route::get('/books/{id}', [BookController::class, 'show']);
+Route::get('/categories', [CategoryController::class, 'index']);
+Route::get('/documents', [DocumentController::class, 'index']);
+Route::get('/documents/{id}', [DocumentController::class, 'show']);
+Route::get('/stats/home', [StatsController::class, 'homeStats']);
+Route::get('/community/questions', [CommunityController::class, 'index']);
+Route::get('/community/questions/{slug}', [CommunityController::class, 'showQuestion']);
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -32,33 +46,42 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
 
-    Route::get('/chats', [MessageController::class, 'getChats']);
-    Route::get('/chats/{id}/messages', [MessageController::class, 'getMessages']);
-    Route::post('/messages', [MessageController::class, 'sendMessage']);
+    // Social / Favorites
+    Route::post('/favorites/toggle', [SocialController::class, 'toggleFavorite']);
 
-    Route::get('/universities', [UniversityController::class, 'index']);
-    Route::get('/universities/{id}', [UniversityController::class, 'show']);
-
-    Route::get('/stats/home', [StatsController::class, 'homeStats']);
-    Route::get('/documents', [DocumentController::class, 'index']);
+    // Documents
     Route::post('/documents', [DocumentController::class, 'store']);
-    Route::get('/documents/{id}', [DocumentController::class, 'show']);
+    Route::post('/documents/{id}/comment', [DocumentController::class, 'comment']);
+    Route::get('/documents/{id}/download', [DocumentController::class, 'download']);
 
-    Route::get('/categories', [CategoryController::class, 'index']);
-    Route::post('/categories', [CategoryController::class, 'store'])->middleware('role:admin');
-    Route::put('/categories/{id}', [CategoryController::class, 'update'])->middleware('role:admin');
-    Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->middleware('role:admin');
+    // Books (Admin only for creation/management)
+    Route::post('/books', [BookController::class, 'store'])->middleware('admin');
+    Route::put('/books/{id}', [BookController::class, 'update'])->middleware('admin');
+    Route::delete('/books/{id}', [BookController::class, 'destroy'])->middleware('admin');
+    Route::get('/books/{id}/download', [BookController::class, 'download']);
 
-    // Admin Routes
-    Route::middleware('role:admin|moderator')->prefix('admin')->group(function () {
+    // Community
+    Route::post('/community/questions', [CommunityController::class, 'storeQuestion']);
+    Route::post('/community/questions/{questionId}/answers', [CommunityController::class, 'storeAnswer']);
+
+    // Universities (Admin only for creation/management)
+    Route::post('/universities', [UniversityController::class, 'store'])->middleware('admin');
+    Route::put('/universities/{id}', [UniversityController::class, 'update'])->middleware('admin');
+    Route::delete('/universities/{id}', [UniversityController::class, 'destroy'])->middleware('admin');
+
+    // Categories (Admin only)
+    Route::post('/categories', [CategoryController::class, 'store'])->middleware('admin');
+    Route::put('/categories/{id}', [CategoryController::class, 'update'])->middleware('admin');
+    Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->middleware('admin');
+
+    // Admin Panel Routes
+    Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
 
-        // User Management (Admin only)
-        Route::middleware('role:admin')->group(function () {
-            Route::get('/users', [UserManagementController::class, 'index']);
-            Route::post('/users/{id}/toggle-status', [UserManagementController::class, 'toggleStatus']);
-            Route::delete('/users/{id}', [UserManagementController::class, 'destroy']);
-        });
+        // User Management
+        Route::get('/users', [UserManagementController::class, 'index']);
+        Route::post('/users/{id}/toggle-status', [UserManagementController::class, 'toggleStatus']);
+        Route::delete('/users/{id}', [UserManagementController::class, 'destroy']);
 
         // Document Management
         Route::get('/documents', [DocumentManagementController::class, 'index']);

@@ -1,422 +1,305 @@
+import React, { useState, useEffect } from 'react'
+import { useParams, Link } from 'react-router-dom'
 import {
-  Download,
-  Share2,
-  Eye,
   FileText,
-  UserPlus,
-  Mail,
-  MoreHorizontal,
-  ChevronRight,
-  Globe,
-  Layers,
-  ChevronLeft,
-  ThumbsUp,
+  Download,
+  Eye,
   MessageSquare,
-  Send
+  Share2,
+  Bookmark,
+  ChevronLeft,
+  Calendar,
+  Layers,
+  Building2,
+  ShieldCheck,
+  User as UserIcon,
+  Send,
+  Loader2,
+  MoreVertical
 } from 'lucide-react'
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import api, { toggleFavoriteApi } from '@/api/authApi'
+import { useAuthStore } from '@/store/authStore'
 
-const MOCK_COMMENTS = [
-  {
-    id: 1,
-    user: {
-      name: 'Sopheak K.',
-      avatar: 'https://i.pravatar.cc/150?u=sopheak',
-    },
-    text: 'This paper is incredibly helpful for my research on mitochondrial metabolism. The explanation of nanotubes is very clear.',
-    time: '2 days ago',
-    likes: 12,
-    isLiked: false,
-    replies: [
-      {
-        id: 101,
-        user: {
-          name: 'Jacques P.',
-          avatar: 'https://i.pravatar.cc/150?u=jacques',
-        },
-        text: 'Glad you found it useful! Feel free to ask if you have any specific questions about the methodology.',
-        time: '1 day ago',
-        likes: 3,
-        isLiked: true,
-      }
-    ]
-  },
-  {
-    id: 2,
-    user: {
-      name: 'Vibol R.',
-      avatar: 'https://i.pravatar.cc/150?u=vibol',
-    },
-    text: 'Does anyone have the supplementary data for Figure 3?',
-    time: '3 hours ago',
-    likes: 0,
-    isLiked: false,
-    replies: []
+export default function DocumentDetail(): React.JSX.Element {
+  const { id } = useParams()
+  const { user, token } = useAuthStore()
+  const [doc, setDoc] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [newComment, setNewComment] = useState('')
+  const [submittingComment, setSubmittingComment] = useState(false)
+  const [isFavorited, setIsFavorited] = useState(false)
+
+  useEffect(() => {
+    fetchDocument()
+  }, [id])
+
+  const fetchDocument = async () => {
+    setLoading(true)
+    try {
+      const res = await api.get(`/documents/${id}`)
+      setDoc(res.data)
+      setIsFavorited(res.data.is_favorited)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
   }
-]
 
-const RELATED_PAPERS = [
-  {
-    id: 1,
-    title: 'Revisiting concepts of mitochondrial transport and energy metabolism in health and cancer',
-    author: 'SALVATORE PASSARELLA',
-    image: 'https://images.unsplash.com/photo-1576086213369-97a306dca664?auto=format&fit=crop&q=80&w=100'
-  },
-  {
-    id: 2,
-    title: 'Mitochondrial DNA in Tumor Initiation, Progression, and Metastasis: Role of Horizontal mtDNA Transfer',
-    author: 'Michael Berridge',
-    image: 'https://images.unsplash.com/photo-1532187875605-2fe358a3d4f2?auto=format&fit=crop&q=80&w=100'
-  },
-  {
-    id: 3,
-    title: 'Somatic alterations in mitochondrial DNA produce changes in cell growth and metabolism supporting a tumorigenic phenotype',
-    author: 'Kimberly Norman, Jana Jandova',
-    image: 'https://images.unsplash.com/photo-1581093588401-fbb62a02f120?auto=format&fit=crop&q=80&w=100'
+  const handleFavorite = async () => {
+    if (!token) return alert('Please login to save favorites.')
+    try {
+      const res = await toggleFavoriteApi({ document_id: Number(id) })
+      setIsFavorited(res.favorited)
+    } catch (err) {
+      console.error(err)
+    }
   }
-]
 
-const MORE_BY_AUTHOR = [
-  { id: 101, title: 'The Level of Major Urinary Proteins is Socially Regulated in Wild Mus...', views: '40', pages: '10' },
-  { id: 102, title: 'Toxoplasma gondii decreases the reproductive fitness in mice', views: '39', pages: '11' },
-  { id: 103, title: 'Horizontal transfer of whole mitochondria restores tumorigenic...', views: '30', pages: '22' },
-  { id: 104, title: 'Complementary roles of mouse lipocalins in chemical communication...', views: '23', pages: '7' },
-]
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newComment.trim() || submittingComment) return
 
-export default function DocumentDetail() {
-  const [activeTab, setActiveTab] = useState('original')
-  const [isExpanded, setIsExpanded] = useState(false)
+    setSubmittingComment(true)
+    try {
+      const res = await api.post(`/documents/${id}/comment`, { content: newComment })
+      setDoc({
+        ...doc,
+        comments: [res.data, ...(doc.comments || [])]
+      })
+      setNewComment('')
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSubmittingComment(false)
+    }
+  }
 
-  const abstract = `Recently, we showed that generation of tumours in syngeneic mice by cells devoid of mitochondrial (mt) DNA (r 0 cells) is linked to the acquisition of the host mtDNA. However, the mechanism of mtDNA movement between cells remains unresolved. To determine whether the transfer of mtDNA involves whole mitochondria, we injected B16r 0 mouse melanoma cells into syngeneic C57BL/6 mice. After a variable lag period, tumours formed and were found to have acquired mtDNA from the host. We used a variety of approaches, including high-resolution imaging and flow cytometry, to demonstrate that the transfer of mtDNA from host cells to r 0 cells occurs via the formation of tunneling nanotubes. This horizontal transfer of whole mitochondria was found to restore mitochondrial function, including oxidative phosphorylation and tumorigenic potential in the recipient r 0 cells. These findings provide new insights into the role of mitochondrial transfer in cancer progression and suggest that targeting this process could offer new therapeutic opportunities.`
+  const handleDownload = async () => {
+    if (!token) return alert('Please login to download.')
+    try {
+      const res = await api.get(`/documents/${id}/download`)
+      window.open(res.data.url, '_blank')
+      setDoc({ ...doc, downloads_count: doc.downloads_count + 1 })
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-white">
+        <Loader2 className="animate-spin text-teal-600 mb-4" size={32} />
+        <p className="text-sm text-slate-500 font-bold uppercase tracking-widest">Opening Archive...</p>
+      </div>
+    )
+  }
+
+  if (!doc) return <div className="p-20 text-center text-slate-900 font-bold">Document not found.</div>
 
   return (
-    <div className="bg-white dark:bg-gray-950 min-h-screen transition-colors duration-300">
-      <div className="max-w-7xl mx-auto py-10 px-4 md:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 font-sans text-slate-900">
 
-          {/* Main Content Area */}
-          <div className="lg:col-span-8">
-            <h1 className="text-3xl font-medium text-gray-900 dark:text-white leading-tight mb-4">
-              Horizontal transfer of whole mitochondria restores tumorigenic potential in mitochondrial DNA-deficient cancer cells
+      <Link to="/search" className="inline-flex items-center gap-2 text-xs font-black text-teal-600 uppercase tracking-widest mb-8 hover:-translate-x-1 transition-transform">
+        <ChevronLeft size={16} /> Back to Repository
+      </Link>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
+
+        {/* Main Preview & Discussion Column */}
+        <div className="lg:col-span-2 space-y-8">
+
+          {/* Header Card */}
+          <div className="bg-white rounded-[32px] border border-slate-200 p-8 shadow-sm">
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              <span className="px-3 py-1 bg-teal-50 text-teal-700 text-[10px] font-black uppercase tracking-widest rounded-full border border-teal-100">
+                {doc.category?.name || 'Academic Material'}
+              </span>
+              <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
+                <Calendar size={14} /> {new Date(doc.created_at).toLocaleDateString()}
+              </span>
+              <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
+                <ShieldCheck size={14} className="text-teal-600" /> Verified Source
+              </span>
+            </div>
+
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-4 leading-tight">
+              {doc.title}
             </h1>
 
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              By <span className="hover:underline cursor-pointer">Pavel Stopka</span> and <span className="hover:underline cursor-pointer">Katerina Dvorakova-Hortova</span>
-            </div>
+            <p className="text-slate-700 text-sm leading-relaxed mb-8">
+              {doc.description || "This academic resource has been uploaded to assist peers in their studies. No abstract summary provided by uploader."}
+            </p>
 
-            <div className="flex items-center gap-6 text-[13px] text-gray-500 dark:text-gray-400 mb-4">
-              <span className="flex items-center gap-1.5"><Eye size={16} /> 30 Views</span>
-              <span className="flex items-center gap-1.5"><FileText size={16} /> 22 Pages</span>
-              <span className="flex items-center gap-1.5"><Layers size={16} /> 1 File</span>
-            </div>
-
-            <div className="text-[13px] text-blue-600 dark:text-blue-400 mb-8 hover:underline cursor-pointer">
-              https://doi.org/10.7554/ELIFE.22187.001
-            </div>
-
-            <div className="relative mb-10">
-              <p className={`text-sm text-gray-700 dark:text-gray-300 leading-relaxed ${!isExpanded ? 'line-clamp-3' : ''}`}>
-                {abstract}
-              </p>
-              {!isExpanded && (
+            <div className="flex flex-wrap items-center justify-between gap-6 pt-8 border-t border-slate-100">
+              <div className="flex items-center gap-4">
                 <button
-                  onClick={() => setIsExpanded(true)}
-                  className="text-sm font-bold text-gray-900 dark:text-white hover:underline mt-1"
+                  onClick={handleFavorite}
+                  className={`flex items-center gap-1.5 text-xs font-bold transition-all px-4 py-2 rounded-xl ${isFavorited ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'}`}
                 >
-                  Read more
+                  <Bookmark size={16} className={isFavorited ? 'fill-current text-amber-500' : ''} />
+                  {isFavorited ? 'Saved to Collection' : 'Save Document'}
                 </button>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-3 mb-12">
-              <button className="bg-[#1a56db] hover:bg-[#1e429f] text-white px-8 py-3 rounded font-bold text-sm flex items-center gap-2 shadow-sm transition-colors">
-                <Download size={18} /> Download PDF
-              </button>
-              <button className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 px-6 py-3 rounded font-bold text-sm flex items-center gap-2 shadow-sm transition-colors">
-                <Layers size={18} className="text-yellow-600" /> Download Full PDF Package
-              </button>
-              <button className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 px-6 py-3 rounded font-bold text-sm flex items-center gap-2 shadow-sm transition-colors">
-                <Globe size={18} className="text-yellow-600" /> Translate PDF
-              </button>
-              <button
-                onClick={() => setActiveTab('comments')}
-                className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 px-6 py-3 rounded font-bold text-sm flex items-center gap-2 shadow-sm transition-colors"
-              >
-                <MessageSquare size={18} className="text-blue-600" /> Discussion
-              </button>
-              <button className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 border border-gray-300 dark:border-gray-700 p-3 rounded shadow-sm transition-colors">
-                <MoreHorizontal size={18} />
-              </button>
-            </div>
-
-            {/* Tabs */}
-            <div className="border-b border-gray-200 dark:border-gray-800 mb-8">
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setActiveTab('original')}
-                  className={`px-10 py-4 text-sm font-medium border-t-2 border-x-2 rounded-t-lg transition-all ${
-                    activeTab === 'original'
-                    ? 'bg-blue-50/50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 text-gray-900 dark:text-white'
-                    : 'bg-white dark:bg-transparent border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                  }`}
-                >
-                  Original PDF <span className="text-[10px] ml-2 font-normal opacity-60">44 minute read</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('related')}
-                  className={`px-10 py-4 text-sm font-medium border-t-2 border-x-2 rounded-t-lg transition-all ${
-                    activeTab === 'related'
-                    ? 'bg-blue-50/50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 text-gray-900 dark:text-white'
-                    : 'bg-white dark:bg-transparent border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                  }`}
-                >
-                  Related
-                </button>
-                <button
-                  onClick={() => setActiveTab('comments')}
-                  className={`px-10 py-4 text-sm font-medium border-t-2 border-x-2 rounded-t-lg transition-all ${
-                    activeTab === 'comments'
-                    ? 'bg-blue-50/50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 text-gray-900 dark:text-white'
-                    : 'bg-white dark:bg-transparent border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                  }`}
-                >
-                  Discussion <span className="text-[10px] ml-2 font-normal opacity-60">{MOCK_COMMENTS.length}</span>
+                <button className="flex items-center gap-1.5 text-xs font-bold transition-all px-4 py-2 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100">
+                  <Share2 size={16} />
+                  Share
                 </button>
               </div>
+
+              <button
+                onClick={handleDownload}
+                className="inline-flex items-center gap-2 px-8 py-3 bg-teal-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-teal-700 transition-all shadow-lg shadow-teal-500/20"
+              >
+                <Download size={18} />
+                Download Paper
+              </button>
+            </div>
+          </div>
+
+          {/* File Preview Placeholder */}
+          <div className="aspect-[16/9] bg-[#0b1329] rounded-[32px] overflow-hidden flex flex-col items-center justify-center text-center p-12 border border-slate-800 relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent pointer-events-none"></div>
+            <FileText size={64} className="text-teal-500/40 mb-6" />
+            <h3 className="text-white font-bold text-lg mb-2">Secure Document Preview</h3>
+            <p className="text-slate-400 text-xs max-w-xs font-medium leading-relaxed mb-8">
+              Full text auditing is restricted to verified network members. Please download the original asset for complete academic review.
+            </p>
+            <button
+              onClick={handleDownload}
+              className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+            >
+              Open in Reader Console
+            </button>
+          </div>
+
+          {/* Discussion Layer */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 ml-2">
+              <MessageSquare size={20} className="text-teal-600" />
+              <h2 className="text-lg font-black text-slate-900 uppercase tracking-widest">Discussion Matrix</h2>
+              <span className="text-xs font-bold text-slate-500">({doc.comments?.length || 0})</span>
             </div>
 
-            {/* Content Area Based on Tabs */}
-            {activeTab === 'comments' ? (
-              <div className="space-y-10 mb-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {/* Comment Input */}
-                <div className="flex gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
-                    SK
-                  </div>
-                  <div className="flex-grow relative">
-                    <textarea
-                      placeholder="Share your thoughts or ask a question..."
-                      className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 text-sm dark:text-gray-200 focus:ring-2 focus:ring-primary/20 focus:bg-white dark:focus:bg-gray-800 outline-none transition-all resize-none min-h-[100px]"
-                    />
-                    <button className="absolute bottom-3 right-3 p-2 bg-primary text-white rounded-xl hover:bg-primary-dark transition-all">
-                      <Send size={18} />
+            {/* Comment Input */}
+            {token ? (
+              <div className="bg-white p-6 rounded-[28px] border border-slate-200 shadow-sm relative focus-within:border-teal-500/40 transition-all">
+                <form onSubmit={handleCommentSubmit}>
+                  <textarea
+                    rows={4}
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Contribute to the academic discussion or ask a technical question..."
+                    className="w-full bg-transparent text-sm text-slate-900 placeholder-slate-400 outline-none resize-none leading-relaxed"
+                  />
+                  <div className="flex justify-end pt-4 border-t border-slate-100 mt-4">
+                    <button
+                      type="submit"
+                      disabled={submittingComment || !newComment.trim()}
+                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-700 transition-all shadow-md shadow-teal-500/10 disabled:opacity-50"
+                    >
+                      {submittingComment ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                      Post Feedback
                     </button>
                   </div>
-                </div>
-
-                {/* Comments List */}
-                <div className="space-y-8">
-                  {MOCK_COMMENTS.map((comment) => (
-                    <div key={comment.id} className="group">
-                      <div className="flex gap-4">
-                        <img src={comment.user.avatar} alt={comment.user.name} className="w-10 h-10 rounded-full" />
-                        <div className="flex-grow">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-bold text-sm text-gray-900 dark:text-white">{comment.user.name}</h4>
-                            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{comment.time}</span>
-                          </div>
-                          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3">{comment.text}</p>
-                          <div className="flex items-center gap-6">
-                            <button className={`flex items-center gap-1.5 text-xs font-bold transition-all ${comment.isLiked ? 'text-primary' : 'text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-primary'}`}>
-                              <ThumbsUp size={14} fill={comment.isLiked ? 'currentColor' : 'none'} />
-                              {comment.likes > 0 && comment.likes} {comment.likes === 1 ? 'Like' : 'Likes'}
-                            </button>
-                            <button className="flex items-center gap-1.5 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-primary transition-all">
-                              <MessageSquare size={14} /> Reply
-                            </button>
-                          </div>
-
-                          {/* Replies */}
-                          {comment.replies.length > 0 && (
-                            <div className="mt-6 space-y-6 pl-6 border-l-2 border-gray-50 dark:border-gray-800">
-                              {comment.replies.map((reply) => (
-                                <div key={reply.id} className="flex gap-4">
-                                  <img src={reply.user.avatar} alt={reply.user.name} className="w-8 h-8 rounded-full" />
-                                  <div className="flex-grow">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <h4 className="font-bold text-sm text-gray-900 dark:text-white">{reply.user.name}</h4>
-                                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{reply.time}</span>
-                                    </div>
-                                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3">{reply.text}</p>
-                                    <div className="flex items-center gap-6">
-                                      <button className={`flex items-center gap-1.5 text-xs font-bold transition-all ${reply.isLiked ? 'text-primary' : 'text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-primary'}`}>
-                                        <ThumbsUp size={12} fill={reply.isLiked ? 'currentColor' : 'none'} />
-                                        {reply.likes > 0 && reply.likes} Like
-                                      </button>
-                                      <button className="flex items-center gap-1.5 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-primary transition-all">
-                                        Reply
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : activeTab === 'original' ? (
-              /* PDF Preview Mock */
-              <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-10 min-h-[800px] shadow-inner mb-16">
-                 <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 shadow-2xl p-12 min-h-[600px]">
-                    <div className="flex justify-between items-start mb-12">
-                       <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-red-600 rounded flex items-center justify-center text-white font-bold text-xl">e</div>
-                          <div>
-                             <p className="font-bold text-2xl tracking-tighter dark:text-white">eLIFE</p>
-                             <p className="text-[10px] text-gray-400 dark:text-gray-500">elifesciences.org</p>
-                          </div>
-                       </div>
-                       <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest text-right">
-                          RESEARCH ARTICLE
-                       </div>
-                    </div>
-
-                    <h2 className="text-3xl font-bold text-[#002b5c] dark:text-blue-300 leading-tight mb-8">
-                      Horizontal transfer of whole mitochondria restores tumorigenic potential in mitochondrial DNA-deficient cancer cells
-                    </h2>
-
-                    <p className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-12">
-                      Lan-Feng Dong*, Jaromira Kovarova*, Martina Bajzikova*, ...
-                    </p>
-
-                    <div className="space-y-4 opacity-40">
-                       <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded w-full"></div>
-                       <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded w-full"></div>
-                       <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded w-5/6"></div>
-                       <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded w-full"></div>
-                       <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded w-4/6"></div>
-                    </div>
-                 </div>
+                </form>
               </div>
             ) : (
-              <div className="py-20 text-center text-gray-400 dark:text-gray-600">
-                <FileText size={48} className="mx-auto mb-4 opacity-20" />
-                <p>Related content and citations would appear here.</p>
+              <div className="bg-slate-50 rounded-[28px] p-8 text-center border border-dashed border-slate-200">
+                <p className="text-sm text-slate-600 mb-4 font-medium">Please log in to participate in academic discussions.</p>
+                <Link to="/login" className="text-xs font-black text-teal-600 uppercase tracking-widest hover:underline">Sign In Now</Link>
               </div>
             )}
 
-            {/* More Papers by Author Section */}
-            <div className="border-t border-gray-100 dark:border-gray-800 pt-12">
-               <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-8">More Papers by Pavel Stopka</h3>
-               <div className="relative group">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {MORE_BY_AUTHOR.map(paper => (
-                      <div key={paper.id} className="space-y-3">
-                        <div className="aspect-[3/4] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-sm rounded p-4 flex flex-col justify-center items-center hover:shadow-md dark:hover:shadow-gray-800/50 transition-shadow cursor-pointer">
-                           <FileText size={48} className="text-gray-100 dark:text-gray-800" />
-                        </div>
-                        <h4 className="text-[13px] font-medium text-blue-600 dark:text-blue-400 leading-snug line-clamp-3 hover:underline cursor-pointer">
-                          {paper.title}
-                        </h4>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Pavel Stopka</p>
-                        <div className="flex items-center gap-3 text-[11px] text-gray-400 dark:text-gray-500">
-                           <span className="flex items-center gap-1"><Eye size={12} /> {paper.views} views</span>
-                           <span className="flex items-center gap-1"><FileText size={12} /> {paper.pages} pages</span>
-                        </div>
-                      </div>
-                    ))}
+            {/* Comments List */}
+            <div className="space-y-4">
+              {doc.comments?.map((comment: any) => (
+                <div key={comment.id} className="bg-white p-6 rounded-[28px] border border-slate-200 shadow-sm flex gap-4 items-start group">
+                  <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                    {comment.user?.avatar ? (
+                      <img src={comment.user.avatar} className="w-full h-full rounded-2xl object-cover" />
+                    ) : (
+                      <UserIcon size={18} />
+                    )}
                   </div>
-                  <button className="absolute -left-5 top-1/3 w-10 h-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full flex items-center justify-center shadow-lg text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ChevronLeft size={20} />
-                  </button>
-                  <button className="absolute -right-5 top-1/3 w-10 h-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full flex items-center justify-center shadow-lg text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ChevronRight size={20} />
-                  </button>
-               </div>
-            </div>
-
-            {/* Premium Membership Banner */}
-            <div className="mt-16 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-100 dark:border-yellow-500/20 rounded-lg p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-               <div className="flex items-center gap-4">
-                  <span className="bg-yellow-400 text-[10px] font-black uppercase px-2 py-0.5 rounded text-white tracking-widest">Premium List</span>
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Because You Read "Self-Regulation: Calm, Alert, and Learning"</p>
-               </div>
-               <div className="flex items-center gap-6">
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Premium members get full access to lists across all of Academia.edu</p>
-                  <button className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline">Upgrade Now</button>
-               </div>
+                  <div className="flex-grow">
+                    <div className="flex justify-between items-center mb-2">
+                       <div>
+                         <h4 className="font-bold text-sm text-slate-900">{comment.user?.name}</h4>
+                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Contributor</p>
+                       </div>
+                       <span className="text-[10px] text-slate-400">{new Date(comment.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <p className="text-sm text-slate-800 leading-relaxed font-medium">
+                      {comment.content}
+                    </p>
+                  </div>
+                  <button className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical size={16} /></button>
+                </div>
+              ))}
             </div>
           </div>
+        </div>
 
-          {/* Sidebar Column */}
-          <div className="lg:col-span-4 border-l border-gray-100 dark:border-gray-800 pl-10">
-            <div className="sticky top-24 space-y-12">
+        {/* Sidebar Info Column */}
+        <div className="space-y-8">
 
-              {/* About Authors */}
-              <section>
-                <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-6">About the authors</h3>
-                <div className="space-y-8">
-                  <div className="flex gap-4">
-                    <img src="https://i.pravatar.cc/150?u=pavel" className="w-12 h-12 rounded-full border border-gray-100 dark:border-gray-800 shadow-sm" alt="Pavel" />
-                    <div>
-                      <h4 className="font-bold text-gray-900 dark:text-white text-[15px] hover:underline cursor-pointer">Pavel Stopka</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Charles University, Prague, Faculty Member</p>
-                      <div className="flex items-center gap-4 mt-3">
-                         <button className="text-[13px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5"><UserPlus size={14} /> Follow</button>
-                         <button className="text-[13px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5"><Mail size={14} /> Message</button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-300 dark:text-gray-600">
-                       <UserPlus size={24} />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-gray-900 dark:text-white text-[15px] hover:underline cursor-pointer">Katerina Dvorakova-Hortova</h4>
-                      <div className="flex items-center gap-4 mt-3">
-                         <button className="text-[13px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5"><UserPlus size={14} /> Follow</button>
-                         <button className="text-[13px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5"><Mail size={14} /> Message</button>
-                      </div>
-                    </div>
-                  </div>
+          {/* Uploader Card */}
+          <div className="bg-white rounded-[32px] border border-slate-200 p-8 shadow-sm">
+             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6">Original Uploader</h3>
+             <Link to="/profile" className="flex items-center gap-4 group">
+               <div className="w-14 h-14 rounded-[20px] bg-slate-100 flex items-center justify-center text-teal-600 font-black text-xl group-hover:scale-105 transition-transform duration-300 overflow-hidden">
+                 {doc.user?.avatar ? <img src={doc.user.avatar} className="w-full h-full object-cover" /> : doc.user?.name?.charAt(0) || 'U'}
+               </div>
+               <div>
+                 <h4 className="font-bold text-slate-900 group-hover:text-teal-600 transition-colors">{doc.user?.name || 'Verified User'}</h4>
+                 <p className="text-[11px] text-slate-500 font-medium">Joined {new Date(doc.user?.created_at).getFullYear()}</p>
+               </div>
+             </Link>
+             <div className="grid grid-cols-1 gap-4 mt-8">
+                <div className="p-4 bg-slate-50 rounded-2xl text-center">
+                  <p className="text-lg font-black text-slate-900">{doc.user?.documents_count || 0}</p>
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Total Uploads</p>
                 </div>
-              </section>
-
-              {/* Related Papers */}
-              <section>
-                <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-6">Related papers</h3>
-                <div className="space-y-8">
-                  {RELATED_PAPERS.map(paper => (
-                    <div key={paper.id} className="flex gap-4 group">
-                      <div className="flex-grow">
-                        <h4 className="text-[13px] font-medium text-gray-900 dark:text-gray-200 leading-snug mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 cursor-pointer line-clamp-3">
-                          {paper.title}
-                        </h4>
-                        <p className="text-[11px] text-gray-400 dark:text-gray-500 uppercase font-bold mb-3">{paper.author}</p>
-                        <div className="flex items-center gap-4">
-                           <button className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5"><Download size={12} /> Download</button>
-                           <button className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline">More options</button>
-                        </div>
-                      </div>
-                      <div className="w-16 h-20 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded overflow-hidden flex-shrink-0 shadow-sm">
-                         <img src={paper.image} className="w-full h-full object-cover opacity-80" alt="Paper" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* Footer Links (Academia style) */}
-              <div className="pt-10 border-t border-gray-100 dark:border-gray-800">
-                 <div className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-gray-400 dark:text-gray-500 font-medium">
-                    <Link to="/about" className="hover:underline">About</Link>
-                    <Link to="/jobs" className="hover:underline">Jobs</Link>
-                    <Link to="/blog" className="hover:underline">Blog</Link>
-                    <Link to="/terms" className="hover:underline">Terms</Link>
-                    <Link to="/privacy" className="hover:underline">Privacy</Link>
-                    <Link to="/copyright" className="hover:underline">Copyright</Link>
-                    <Link to="/contact" className="hover:underline">We're Hiring!</Link>
-                 </div>
-                 <p className="text-[11px] text-gray-300 dark:text-gray-600 mt-4">© 2024 DocuLink</p>
-              </div>
-            </div>
+             </div>
           </div>
+
+          {/* Asset Metadata */}
+          <div className="bg-white rounded-[32px] border border-slate-200 p-8 shadow-sm">
+             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6">Resource Metadata</h3>
+             <div className="space-y-4">
+               <div className="flex items-center justify-between text-sm">
+                 <span className="flex items-center gap-2 text-slate-500 font-bold uppercase tracking-widest text-[10px]"><Layers size={14} /> Category</span>
+                 <span className="font-black text-slate-900">{doc.category?.name}</span>
+               </div>
+               <div className="flex items-center justify-between text-sm">
+                 <span className="flex items-center gap-2 text-slate-500 font-bold uppercase tracking-widest text-[10px]"><Building2 size={14} /> University</span>
+                 <span className="font-black text-slate-900 text-right max-w-[150px] truncate">
+                    {doc.university ? (doc.university.short_name || doc.university.name) : 'Not Specified'}
+                 </span>
+               </div>
+               <div className="flex items-center justify-between text-sm">
+                 <span className="flex items-center gap-2 text-slate-500 font-bold uppercase tracking-widest text-[10px]"><Eye size={14} /> Views</span>
+                 <span className="font-black text-slate-900">{doc.view_count || 0}</span>
+               </div>
+               <div className="flex items-center justify-between text-sm">
+                 <span className="flex items-center gap-2 text-slate-500 font-bold uppercase tracking-widest text-[10px]"><Download size={14} /> Downloads</span>
+                 <span className="font-black text-slate-900">{doc.download_count || 0}</span>
+               </div>
+             </div>
+          </div>
+
+          {/* Related Documents Widget */}
+          <div className="bg-[#101726] rounded-[32px] p-8 text-white relative overflow-hidden shadow-lg">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-2xl"></div>
+             <h3 className="text-lg font-black mb-6 tracking-tight">Academic Integrity</h3>
+             <p className="text-slate-300 text-xs leading-relaxed mb-6 font-medium">
+               All shared resources on DocuLink must adhere to our academic integrity policies. Plagiarism is strictly monitored and flagged.
+             </p>
+             <button className="w-full py-3.5 bg-white/10 border border-white/20 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/20 transition-all">
+                Report Violation
+             </button>
+          </div>
+
         </div>
       </div>
     </div>

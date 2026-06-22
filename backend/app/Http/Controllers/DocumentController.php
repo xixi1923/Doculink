@@ -15,9 +15,9 @@ class DocumentController extends Controller
         $this->documentService = $documentService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json($this->documentService->getAllDocuments());
+        return response()->json($this->documentService->getAllDocuments($request->all()));
     }
 
     public function store(Request $request)

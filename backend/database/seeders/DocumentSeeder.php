@@ -24,7 +24,6 @@ class DocumentSeeder extends Seeder
                     'file_path' => 'documents/sample.pdf',
                     'file_type' => 'pdf',
                     'status' => 'pending',
-                    'school' => 'Bak Touk High School',
                 ]
             );
         }

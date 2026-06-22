@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Favorite extends Model
 {
-    protected $fillable = ['user_id', 'document_id'];
+    protected $fillable = ['user_id', 'document_id', 'book_id'];
 
     public function user()
     {
@@ -16,5 +16,10 @@ class Favorite extends Model
     public function document()
     {
         return $this->belongsTo(Document::class);
+    }
+
+    public function book()
+    {
+        return $this->belongsTo(Book::class);
     }
 }

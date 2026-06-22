@@ -6,7 +6,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    host: true, // Needed for Docker
+    host: 'localhost',
+    strictPort: true,
   },
   resolve: {
     alias: {

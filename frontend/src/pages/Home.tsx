@@ -325,7 +325,7 @@ export default function Home(): React.JSX.Element {
                    )}
                 </div>
               </div>
-              <button className="w-full text-center py-2.5 bg-slate-50 dark:bg-gray-800/50 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-xl font-bold text-xs text-slate-500 dark:text-gray-400 mt-6 transition-colors border border-transparent dark:border-gray-700">View Analytics</button>
+              <Link to="/trending" className="w-full text-center py-2.5 bg-slate-50 dark:bg-gray-800/50 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-xl font-bold text-xs text-slate-500 dark:text-gray-400 mt-6 transition-colors border border-transparent dark:border-gray-700 block">View Analytics</Link>
            </div>
 
            {/* Tier 3: Core Network Proof Card */}

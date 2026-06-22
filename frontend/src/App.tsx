@@ -19,21 +19,15 @@ import Community from './pages/Community'
 import AskQuestion from './pages/Community/AskQuestion'
 import QuestionDetail from './pages/Community/QuestionDetail'
 import DocumentDetail from './pages/DocumentDetail'
+import Trending from './pages/Trending'
+import Messages from './pages/Messages'
+import Notifications from './pages/Notifications'
 import Landing from './pages/Landing'
 import UploadDocument from './pages/UploadDocument'
 import HelpCenter from './pages/Support/HelpCenter'
 import ContactUs from './pages/Support/ContactUs'
 import TermsOfService from './pages/Legal/TermsOfService'
 import PrivacyPolicy from './pages/Legal/PrivacyPolicy'
-import AdminLayout from './layouts/AdminLayout'
-import AdminDashboard from './pages/Admin/Dashboard'
-import AdminUsers from './pages/Admin/Users'
-import AdminDocuments from './pages/Admin/Documents'
-import AdminBooks from './pages/Admin/Books'
-import AdminCategories from './pages/Admin/Categories'
-import AdminUniversities from './pages/Admin/Universities'
-import AdminProfile from './pages/Admin/Profile'
-import AdminSettings from './pages/Admin/Settings'
 import { getProfile } from '@/api/authApi'
 
 function App() {
@@ -68,45 +62,34 @@ function App() {
 
   const isAdmin = user?.role === 'admin'
 
-  const adminElement = token ? (
-    authReady ? (
-      isAdmin ? (
-        <AdminLayout />
-      ) : (
-        <Navigate to="/" replace />
-      )
-    ) : (
-      <div className="min-h-screen flex items-center justify-center">Loading admin...</div>
-    )
-  ) : (
-    <Navigate to="/" replace />
-  )
-
   return (
     <Routes>
       <Route path="/" element={<MainLayout />}>
         <Route
           index
-          element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : token ? <Home /> : <Landing />}
+          element={token ? <Home /> : <Landing />}
         />
         <Route
           path="login"
-          element={token && isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Login />}
+          element={token ? <Navigate to="/" replace /> : <Login />}
         />
         <Route
           path="register"
-          element={token && isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Register />}
+          element={token ? <Navigate to="/" replace /> : <Register />}
         />
         <Route path="forgot-password" element={<ForgotPassword />} />
-        <Route path="books" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Books />} />
-        <Route path="books/:id" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <BookDetail />} />
-        <Route path="books/:id/read" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <BookReader />} />
-        <Route path="universities" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Universities />} />
-        <Route path="universities/:id" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <UniversityDetail />} />
-        <Route path="search" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Search />} />
-        <Route path="profile" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Profile />} />
-        <Route path="profile/settings" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Settings />} />
-        <Route path="profile/documents" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <MyDocuments />} />
+        <Route path="books" element={<Books />} />
+        <Route path="books/:id" element={<BookDetail />} />
+        <Route path="books/:id/read" element={<BookReader />} />
+        <Route path="universities" element={<Universities />} />
+        <Route path="universities/:id" element={<UniversityDetail />} />
+        <Route path="search" element={<Search />} />
+        <Route path="trending" element={<Trending />} />
+        <Route path="messages" element={<Messages />} />
+        <Route path="notifications" element={<Notifications />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="profile/settings" element={<Settings />} />
+        <Route path="profile/documents" element={<MyDocuments />} />
         <Route path="community" element={<Community />} />
         <Route path="community/ask" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <AskQuestion />} />
         <Route path="community/questions/:slug" element={<QuestionDetail />} />
@@ -118,18 +101,8 @@ function App() {
         <Route path="privacy" element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <PrivacyPolicy />} />
       </Route>
 
-      <Route path="admin" element={adminElement}>
-        <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="users" element={<AdminUsers />} />
-        <Route path="documents" element={<AdminDocuments />} />
-        <Route path="books" element={<AdminBooks />} />
-        <Route path="upload" element={<UploadDocument />} />
-        <Route path="categories" element={<AdminCategories />} />
-        <Route path="universities" element={<AdminUniversities />} />
-        <Route path="profile" element={<AdminProfile />} />
-        <Route path="settings" element={<AdminSettings />} />
-        <Route index element={<Navigate to="dashboard" replace />} />
-      </Route>
+      {/* Redirect all other /admin routes to the backend admin portal */}
+      <Route path="admin/*" element={<div className="min-h-screen flex items-center justify-center">Redirecting to Admin Portal...</div>} />
     </Routes>
   )
 }

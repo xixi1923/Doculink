@@ -13,9 +13,11 @@ export default function AdminDashboard() {
     try {
       const dashboard = await getAdminDashboard()
       setData(dashboard)
-    } catch (err) {
-      console.error('Failed to load admin dashboard', err)
-      setError('Unable to load dashboard data. Please refresh or check your permissions.')
+    } catch (err: any) {
+      if (err.response?.status !== 401) {
+        console.error('Failed to load admin dashboard', err)
+        setError('Unable to load dashboard data. Please refresh or check your permissions.')
+      }
     } finally {
       setLoading(false)
     }

@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_URL = 'http://localhost:8000/api'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
 const api = axios.create({
   baseURL: API_URL,
@@ -78,6 +78,32 @@ export const getUniversities = async () => {
 
 export const getUniversityDetail = async (id: string) => {
   const response = await api.get(`/universities/${id}`)
+  return response.data
+}
+
+// Messages API (Stubs for now as backend is not ready)
+export const getChats = async () => {
+  try {
+    const response = await api.get('/chats')
+    return response.data
+  } catch (error) {
+    console.warn('Chats API not found, returning empty array')
+    return []
+  }
+}
+
+export const getMessages = async (chatId: number) => {
+  try {
+    const response = await api.get(`/chats/${chatId}/messages`)
+    return response.data
+  } catch (error) {
+    console.warn('Messages API not found, returning empty array')
+    return []
+  }
+}
+
+export const sendMessageApi = async (data: { receiver_id: number; message: string }) => {
+  const response = await api.post('/messages', data)
   return response.data
 }
 

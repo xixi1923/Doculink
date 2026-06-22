@@ -8,6 +8,9 @@ use App\Http\Controllers\UniversityController;
 use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\SocialController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\TagController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\DocumentManagementController;
@@ -31,6 +34,8 @@ Route::get('/documents/{id}', [DocumentController::class, 'show']);
 Route::get('/stats/home', [StatsController::class, 'homeStats']);
 Route::get('/community/questions', [CommunityController::class, 'index']);
 Route::get('/community/questions/{slug}', [CommunityController::class, 'showQuestion']);
+Route::get('/tags', [TagController::class, 'index']);
+Route::get('/tags/{id}', [TagController::class, 'show']);
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -54,6 +59,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/documents/{id}/comment', [DocumentController::class, 'comment']);
     Route::get('/documents/{id}/download', [DocumentController::class, 'download']);
 
+    // Reports
+    Route::post('/reports', [ReportController::class, 'store']);
+
     // Books (Admin only for creation/management)
     Route::post('/books', [BookController::class, 'store'])->middleware('admin');
     Route::put('/books/{id}', [BookController::class, 'update'])->middleware('admin');
@@ -74,6 +82,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/categories/{id}', [CategoryController::class, 'update'])->middleware('admin');
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->middleware('admin');
 
+    // Tags (Admin only for creation/management)
+    Route::post('/tags', [TagController::class, 'store'])->middleware('admin');
+    Route::put('/tags/{id}', [TagController::class, 'update'])->middleware('admin');
+    Route::delete('/tags/{id}', [TagController::class, 'destroy'])->middleware('admin');
+
     // Admin Panel Routes
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -88,5 +101,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/documents/{id}/approve', [DocumentManagementController::class, 'approve']);
         Route::post('/documents/{id}/reject', [DocumentManagementController::class, 'reject']);
         Route::delete('/documents/{id}', [DocumentManagementController::class, 'destroy']);
+
+        // Report Management
+        Route::get('/reports', [ReportController::class, 'adminIndex']);
+        Route::post('/reports/{id}/resolve', [ReportController::class, 'adminResolve']);
     });
 });

@@ -14,3 +14,13 @@ export const uploadDocument = async (formData: FormData) => {
   const response = await api.post('/documents', formData)
   return response.data
 }
+
+export const addDocumentComment = async (id: string, content: string) => {
+  const response = await api.post(`/documents/${id}/comment`, { content })
+  return response.data
+}
+
+export const downloadDocument = async (id: string) => {
+  const response = await api.get(`/documents/${id}/download`)
+  return response.data
+}

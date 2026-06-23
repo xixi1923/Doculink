@@ -14,9 +14,22 @@ class DocumentService
         $this->documentRepository = $documentRepository;
     }
 
-    public function getAllDocuments()
+    public function getAllDocuments($filters = [])
     {
-        return $this->documentRepository->all(['*'], ['user', 'category']);
+        $query = \App\Models\Document::with(['user', 'category', 'university']);
+
+        if (isset($filters['category_id'])) {
+            $query->where('category_id', $filters['category_id']);
+        }
+
+        if (isset($filters['search'])) {
+            $query->where(function($q) use ($filters) {
+                $q->where('title', 'like', '%' . $filters['search'] . '%')
+                  ->orWhere('description', 'like', '%' . $filters['search'] . '%');
+            });
+        }
+
+        return $query->orderBy('created_at', 'desc')->get();
     }
 
     public function uploadDocument(array $data, $file)

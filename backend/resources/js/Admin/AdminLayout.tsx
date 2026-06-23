@@ -22,7 +22,7 @@ export default function AdminLayout() {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/admin/login';
+    window.location.href = '/';
   }
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function AdminLayout() {
     const storedUser = localStorage.getItem('user');
 
     if (!token || !storedUser) {
-      navigate('/admin/login', { replace: true });
+      navigate('/', { replace: true });
       return;
     }
 

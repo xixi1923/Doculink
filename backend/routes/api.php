@@ -63,9 +63,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reports', [ReportController::class, 'store']);
 
     // Books (Admin only for creation/management)
-    Route::post('/books', [BookController::class, 'store'])->middleware('admin');
-    Route::put('/books/{id}', [BookController::class, 'update'])->middleware('admin');
-    Route::delete('/books/{id}', [BookController::class, 'destroy'])->middleware('admin');
+    Route::post('/books', [BookController::class, 'store']);
+    Route::put('/books/{id}', [BookController::class, 'update']);
+    Route::delete('/books/{id}', [BookController::class, 'destroy']);
     Route::get('/books/{id}/download', [BookController::class, 'download']);
 
     // Community
@@ -73,22 +73,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/community/questions/{questionId}/answers', [CommunityController::class, 'storeAnswer']);
 
     // Universities (Admin only for creation/management)
-    Route::post('/universities', [UniversityController::class, 'store'])->middleware('admin');
-    Route::put('/universities/{id}', [UniversityController::class, 'update'])->middleware('admin');
-    Route::delete('/universities/{id}', [UniversityController::class, 'destroy'])->middleware('admin');
+    Route::post('/universities', [UniversityController::class, 'store']);
+    Route::put('/universities/{id}', [UniversityController::class, 'update']);
+    Route::delete('/universities/{id}', [UniversityController::class, 'destroy']);
 
     // Categories (Admin only)
-    Route::post('/categories', [CategoryController::class, 'store'])->middleware('admin');
-    Route::put('/categories/{id}', [CategoryController::class, 'update'])->middleware('admin');
-    Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->middleware('admin');
+    Route::post('/categories', [CategoryController::class, 'store']);
+    Route::put('/categories/{id}', [CategoryController::class, 'update']);
+    Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
 
     // Tags (Admin only for creation/management)
-    Route::post('/tags', [TagController::class, 'store'])->middleware('admin');
-    Route::put('/tags/{id}', [TagController::class, 'update'])->middleware('admin');
-    Route::delete('/tags/{id}', [TagController::class, 'destroy'])->middleware('admin');
+    Route::post('/tags', [TagController::class, 'store']);
+    Route::put('/tags/{id}', [TagController::class, 'update']);
+    Route::delete('/tags/{id}', [TagController::class, 'destroy']);
 
     // Admin Panel Routes
-    Route::middleware('admin')->prefix('admin')->group(function () {
+    Route::prefix('admin')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
 
         // User Management

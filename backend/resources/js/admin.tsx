@@ -13,6 +13,7 @@ function AdminApp() {
     return (
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
+                <Route path="/" element={<AdminLogin />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/admin" element={<AdminLayout />}>
                     <Route index element={<Navigate to="dashboard" replace />} />

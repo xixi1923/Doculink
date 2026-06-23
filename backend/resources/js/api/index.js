@@ -19,7 +19,7 @@ api.interceptors.response.use(
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       if (window.location.pathname.startsWith('/admin')) {
-        window.location.href = '/admin/login'
+        window.location.href = '/'
       } else {
         window.location.href = '/login'
       }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getAdminDocuments, approveAdminDocument, rejectAdminDocument, deleteAdminDocument } from '@/api/adminApi'
-import { FileCheck, XCircle, Trash2, Clock } from 'lucide-react'
+import { FileCheck, XCircle, Trash2, Clock, FileText } from 'lucide-react'
 
 export default function AdminDocuments() {
   const [documents, setDocuments] = useState<any[]>([])
@@ -63,30 +63,71 @@ export default function AdminDocuments() {
           </thead>
           <tbody className="divide-y divide-slate-200">
             {documents.map((doc) => (
-              <tr key={doc.id} className="hover:bg-slate-50">
-                <td className="px-6 py-4 font-semibold text-slate-900">{doc.title}</td>
-                <td className="px-6 py-4">{doc.user?.name || 'Unknown'}</td>
-                <td className="px-6 py-4">{doc.category?.name || 'None'}</td>
-                <td className="px-6 py-4 uppercase tracking-[0.1em]">{doc.status}</td>
-                <td className="px-6 py-4 flex flex-wrap gap-2">
-                  <button
-                    onClick={() => updateDocument(doc.id, 'approve')}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.2em] text-emerald-600 hover:bg-emerald-100 transition-all"
-                  >
-                    <FileCheck size={14} /> Approve
-                  </button>
-                  <button
-                    onClick={() => updateDocument(doc.id, 'reject')}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.2em] text-amber-600 hover:bg-amber-100 transition-all"
-                  >
-                    <XCircle size={14} /> Reject
-                  </button>
-                  <button
-                    onClick={() => updateDocument(doc.id, 'delete')}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.2em] text-rose-600 hover:bg-rose-100 transition-all"
-                  >
-                    <Trash2 size={14} /> Delete
-                  </button>
+              <tr key={doc.id} className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-5">
+                  <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 w-fit pr-8">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+                      <FileText size={20} />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-slate-900 truncate max-w-[200px] leading-tight">
+                        {doc.title}
+                        {doc.extension && !doc.title.endsWith(doc.extension) ? `.${doc.extension}` : ''}
+                      </span>
+                      <span className="text-[11px] font-medium text-slate-400 mt-0.5">
+                        {doc.file_size || '125.85 KB'}
+                      </span>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-slate-900">{doc.user?.name || 'Unknown'}</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-widest">{doc.user?.email}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-5">
+                  <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">
+                    {doc.category?.name || 'General'}
+                  </span>
+                </td>
+                <td className="px-6 py-5 text-center">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                    doc.status === 'pending' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                    doc.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                    'bg-rose-50 text-rose-600 border border-rose-100'
+                  }`}>
+                    {doc.status}
+                  </span>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="flex items-center gap-2">
+                    {doc.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => updateDocument(doc.id, 'approve')}
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                          title="Approve"
+                        >
+                          <FileCheck size={18} />
+                        </button>
+                        <button
+                          onClick={() => updateDocument(doc.id, 'reject')}
+                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          title="Reject"
+                        >
+                          <XCircle size={18} />
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => updateDocument(doc.id, 'delete')}
+                      className="p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

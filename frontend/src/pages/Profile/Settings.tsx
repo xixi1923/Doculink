@@ -5,38 +5,50 @@ import {
   Eye,
   Globe,
   Trash2,
-  ChevronRight,
-  Shield,
-  Smartphone,
-  Loader2
+  ShieldAlert,
+  BookOpen,
+  Loader2,
+  Sliders,
+  AtSign,
+  Facebook,
+  Instagram,
+  Link as LinkIcon,
+  MapPin,
+  GraduationCap,
+  Music2
 } from 'lucide-react'
-import { getProfile, updateProfile, updateAvatar, changePasswordApi, deleteAccountApi } from '@/api/authApi'
+import { getProfile, updateProfile, updateAvatar, changePasswordApi, deleteAccountApi, getUniversities } from '@/api/authApi'
 import { User as UserType } from '@/types'
 import { useAuthStore } from '@/store/authStore'
 
-// ================= TYPES & INTERFACES =================
-type SettingSection = 'profile' | 'account' | 'privacy';
-
-interface MenuItem {
-  id: SettingSection;
-  label: string;
-  icon: React.ComponentType<{ size: number | string; className?: string }>;
-}
+type SettingsTab = 'edit-profile' | 'account-security';
 
 export default function Settings(): React.JSX.Element {
-  const [activeSection, setActiveSection] = useState<SettingSection>('profile')
+  const [activeTab, setActiveTab] = useState<SettingsTab>('edit-profile')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [imageError, setImageError] = useState(false)
-  const [profile, setProfile] = useState<Partial<UserType>>({
+  const [profile, setProfile] = useState<Partial<any>>({
     name: '',
+    username: '',
     email: '',
     bio: '',
     school: '',
-    university: '',
-    major: ''
+    university_id: '',
+    major: '',
+    affiliation: '',
+    country: '',
+    academic_title: '',
+    research_interests: '',
+    social_links: {
+      facebook: '',
+      instagram: '',
+      tiktok: '',
+      website: ''
+    }
   })
+  const [universities, setUniversities] = useState<any[]>([])
   const [passwordData, setPasswordData] = useState({
     current_password: '',
     new_password: '',
@@ -48,41 +60,72 @@ export default function Settings(): React.JSX.Element {
   const { setAuth, token, logout } = useAuthStore()
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getProfile()
+        const [profileData, univsData] = await Promise.all([
+          getProfile(),
+          getUniversities()
+        ])
+        const user = profileData.user || profileData
         setProfile({
-          name: data.name || '',
-          email: data.email || '',
-          bio: data.bio || '',
-          school: data.school || '',
-          university: data.university || '',
-          major: data.major || '',
-          avatar: data.avatar || undefined
+          name: user.name || '',
+          username: user.username || '',
+          email: user.email || '',
+          bio: user.bio || '',
+          school: user.school || '',
+          university_id: user.university_id || '',
+          major: user.major || '',
+          affiliation: user.affiliation || '',
+          country: user.country || '',
+          academic_title: user.academic_title || '',
+          research_interests: Array.isArray(user.research_interests) ? user.research_interests.join(', ') : '',
+          social_links: {
+            facebook: user.social_links?.facebook || '',
+            instagram: user.social_links?.instagram || '',
+            tiktok: user.social_links?.tiktok || '',
+            website: user.social_links?.website || ''
+          },
+          avatar: user.avatar || undefined
         })
+        setUniversities(univsData)
       } catch (error) {
         console.error('Failed to fetch profile', error)
       } finally {
         setIsLoading(false)
       }
     }
-    fetchProfile()
+    fetchData()
   }, [])
 
   const handleSave = async () => {
     setIsSaving(true)
     setSaveSuccess(false)
     try {
-      const response = await updateProfile(profile)
+      const payload = {
+        ...profile,
+        research_interests: profile.research_interests.split(',').map((s: string) => s.trim()).filter((s: string) => s !== '')
+      }
+      const response = await updateProfile(payload)
       const updatedUser = response.user
 
       setProfile({
         name: updatedUser.name || '',
+        username: updatedUser.username || '',
         email: updatedUser.email || '',
         bio: updatedUser.bio || '',
         school: updatedUser.school || '',
-        university: updatedUser.university || '',
+        university_id: updatedUser.university_id || '',
         major: updatedUser.major || '',
+        affiliation: updatedUser.affiliation || '',
+        country: updatedUser.country || '',
+        academic_title: updatedUser.academic_title || '',
+        research_interests: Array.isArray(updatedUser.research_interests) ? updatedUser.research_interests.join(', ') : '',
+        social_links: {
+          facebook: updatedUser.social_links?.facebook || '',
+          instagram: updatedUser.social_links?.instagram || '',
+          tiktok: updatedUser.social_links?.tiktok || '',
+          website: updatedUser.social_links?.website || ''
+        },
         avatar: updatedUser.avatar || undefined
       })
 
@@ -97,9 +140,9 @@ export default function Settings(): React.JSX.Element {
 
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update profile', error)
-      alert('There was a problem saving your data!')
+      alert(error.response?.data?.message || 'There was a problem saving your data!')
     } finally {
       setIsSaving(false)
     }
@@ -137,8 +180,8 @@ export default function Settings(): React.JSX.Element {
     try {
       await deleteAccountApi()
       alert('Your account has been deleted!')
-      logout() // Exit the app
-      window.location.href = '/' // Return to home page
+      logout()
+      window.location.href = '/'
     } catch (error) {
       console.error('Failed to delete account', error)
       alert('Account deletion failed!')
@@ -169,24 +212,18 @@ export default function Settings(): React.JSX.Element {
           photoURL: response.url || null
         }, token)
       }
-    } catch (error) {
-      console.error('Failed to upload avatar', error)
+    } catch (error: any) {
+      console.error('Failed to upload avatar', error.response?.data || error.message)
+      alert(`Avatar upload failed: ${error.response?.data?.message || error.message}`)
     } finally {
       setIsSaving(false)
     }
   }
 
-  // ================= MENU REGISTRY =================
-  const menuItems: MenuItem[] = [
-    { id: 'profile', label: 'Edit Profile', icon: User },
-    { id: 'account', label: 'Account Settings', icon: Lock },
-    { id: 'privacy', label: 'Privacy & Security', icon: Shield },
-  ]
-
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-6 h-6 text-teal-600 animate-spin" />
       </div>
     )
   }
@@ -196,334 +233,285 @@ export default function Settings(): React.JSX.Element {
     : 'U'
 
   return (
-    <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 font-sans text-slate-800 dark:text-slate-200 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom duration-500">
+    <div className="max-w-5xl mx-auto py-8 px-4 font-sans text-slate-800 dark:text-slate-200">
 
-      {/* ================= HEADER SECTION ================= */}
-      <div className="mb-10">
-        <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest bg-teal-500/10 px-3.5 py-1 rounded-full">
-          Preferences
-        </span>
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-3">Settings</h1>
+      {/* ================= HEADER CONTROLS TABS ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-gray-800 pb-4 mb-6">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/40 flex items-center justify-center text-teal-600">
+            <Sliders size={16} />
+          </div>
+          <div>
+            <h1 className="text-base font-semibold text-slate-900 dark:text-white">Workspace Configuration</h1>
+            <p className="text-[11px] text-slate-400">Manage your identity layout definitions and parameters</p>
+          </div>
+        </div>
+
+        {/* Tab Interaction Switches */}
+        <div className="flex bg-slate-100 dark:bg-gray-800 p-1 rounded-lg self-start sm:self-center">
+          <button
+            onClick={() => setActiveTab('edit-profile')}
+            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-2 ${
+              activeTab === 'edit-profile'
+                ? 'bg-white dark:bg-gray-900 text-teal-600 shadow-xs'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
+            }`}
+          >
+            <User size={14} />
+            Edit Profile
+          </button>
+          <button
+            onClick={() => setActiveTab('account-security')}
+            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-2 ${
+              activeTab === 'account-security'
+                ? 'bg-white dark:bg-gray-900 text-teal-600 shadow-xs'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
+            }`}
+          >
+            <Lock size={14} />
+            Account Security
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
-
-        {/* ================= SIDEBAR NAVIGATION ================= */}
-        <aside className="w-full lg:w-64 shrink-0">
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/60 shadow-xs space-y-1">
-            {menuItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-                  activeSection === item.id
-                    ? 'bg-[#0b1329] text-teal-400 shadow-sm border border-slate-800'
-                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                }`}
-              >
-                <item.icon size={14} className={activeSection === item.id ? 'text-teal-400' : ''} />
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        {/* ================= MAIN CONTENT VIEWPORT ================= */}
-        <main className="flex-grow">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800/60 shadow-xs p-6 md:p-10 min-h-[580px] transition-all duration-300">
-
-            {/* 1. PROFILE SECTION LAYER */}
-            {activeSection === 'profile' && (
-              <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in duration-300">
-                <section>
-                  <h2 className="text-base font-black text-slate-900 dark:text-white mb-6">Public Profile Settings</h2>
-                  <div className="space-y-6">
-
-                    {/* Avatar Customizer Group */}
-                    <div className="flex items-center gap-5">
-                      <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-teal-600 dark:text-teal-400 text-xl font-black shadow-inner border border-slate-200 dark:border-slate-700 shrink-0 overflow-hidden select-none">
-                        {profile.avatar && !imageError ? (
-                          <img
-                            src={profile.avatar}
-                            alt={profile.name}
-                            className="w-full h-full object-cover"
-                            onError={() => setImageError(true)}
-                          />
-                        ) : (
-                          <span>{initials}</span>
-                        )}
-                      </div>
-                      <div className="space-y-1.5">
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          onChange={handleAvatarChange}
-                          accept="image/*"
-                          className="hidden"
-                        />
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={isSaving}
-                          className="px-4 py-2 bg-teal-500 text-white text-[10px] font-extrabold uppercase tracking-wider rounded-xl hover:bg-teal-600 transition-all shadow-sm shadow-teal-500/10 hover:-translate-y-0.5 disabled:opacity-50"
-                        >
-                          {isSaving ? 'Uploading...' : 'Change Avatar'}
-                        </button>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">JPG, GIF or PNG. Max size file allocation limit 2MB</p>
-                      </div>
-                    </div>
-
-                    {/* Standard Input Form Structure */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Display Name</label>
-                        <input
-                          type="text"
-                          value={profile.name}
-                          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Email Address</label>
-                        <input
-                          type="email"
-                          value={profile.email}
-                          onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-0.5">High School / Education</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Bak Touk High School"
-                          value={profile.school}
-                          onChange={(e) => setProfile({ ...profile, school: e.target.value })}
-                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-0.5">University (If applicable)</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. RUPP"
-                          value={profile.university}
-                          onChange={(e) => setProfile({ ...profile, university: e.target.value })}
-                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors"
-                        />
-                      </div>
-
-                      <div className="md:col-span-2 space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Major / Grade Level</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Grade 12 or Computer Science"
-                          value={profile.major}
-                          onChange={(e) => setProfile({ ...profile, major: e.target.value })}
-                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors"
-                        />
-                      </div>
-
-                      <div className="md:col-span-2 space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Biography Statement</label>
-                        <textarea
-                          rows={4}
-                          value={profile.bio}
-                          onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:border-teal-500/50 outline-none transition-colors resize-none"
-                          placeholder="Write a brief educational description summary concerning yourself..."
-                        ></textarea>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800/40">
-                   {saveSuccess && (
-                     <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest animate-pulse">
-                       ✓ Profile updated successfully
-                     </span>
-                   )}
-                   <div className="flex-grow"></div>
-                   <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="px-6 py-2.5 bg-[#0b1329] dark:bg-teal-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl hover:opacity-90 transition-all shadow-sm flex items-center gap-2"
-                   >
-                     {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                     {isSaving ? 'Saving...' : 'Save Changes'}
-                   </button>
+      {/* ================= INTERACTION SEGMENTS RENDERING ================= */}
+      {activeTab === 'edit-profile' ? (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          {/* Academia.edu Style Header Banner */}
+          <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-xs flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
+            <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
+              <div className="relative w-20 h-20 rounded-full bg-slate-50 border border-slate-200 dark:border-gray-700 flex items-center justify-center text-teal-600 text-xl font-semibold overflow-hidden shrink-0 shadow-inner">
+                {profile.avatar && !imageError ? (
+                  <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" onError={() => setImageError(true)} />
+                ) : (
+                  <span>{initials}</span>
+                )}
+              </div>
+              <div>
+                <h1 className="text-base font-bold text-slate-900 dark:text-white">{profile.name || 'Scholar Account'}</h1>
+                <p className="text-xs text-slate-400">{profile.university || profile.school || 'No Affiliation Linked'}</p>
+                <div className="mt-2.5">
+                  <input type="file" ref={fileInputRef} onChange={handleAvatarChange} accept="image/*" className="hidden" />
+                  <button onClick={() => fileInputRef.current?.click()} className="px-2.5 py-1.5 border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-slate-50 rounded text-[11px] font-medium transition-colors">
+                    Change Photo
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* 2. ACCOUNT SECURITY LAYER */}
-            {activeSection === 'account' && (
-              <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in duration-300">
-                <section>
-                  <h2 className="text-base font-black text-slate-900 dark:text-white mb-6">Security & Authentication</h2>
-                  <div className="space-y-3">
-
-                    {!isChangingPassword ? (
-                      <div
-                        onClick={() => setIsChangingPassword(true)}
-                        className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800/60 hover:border-teal-500/30 transition-all cursor-pointer group"
-                      >
-                        <div className="flex items-center gap-3.5">
-                            <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl text-slate-400 group-hover:text-teal-500 transition-colors border border-slate-100 dark:border-slate-800">
-                              <Lock size={16} />
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Change Master Password</h4>
-                              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Update your secure profile system access key</p>
-                            </div>
-                        </div>
-                        <ChevronRight size={14} className="text-slate-300 group-hover:translate-x-0.5 transition-transform" />
-                      </div>
-                    ) : (
-                      <form onSubmit={handleChangePassword} className="bg-slate-50 dark:bg-slate-950 p-6 rounded-2xl border border-teal-500/20 space-y-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Reset Access Key</h4>
-                          <button type="button" onClick={() => setIsChangingPassword(false)} className="text-[10px] text-slate-400 hover:text-rose-500 font-bold uppercase">Cancel</button>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Current Password</label>
-                          <input
-                            type="password"
-                            required
-                            value={passwordData.current_password}
-                            onChange={(e) => setPasswordData({...passwordData, current_password: e.target.value})}
-                            className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2 text-xs outline-none focus:border-teal-500/50"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-0.5">New Password</label>
-                            <input
-                              type="password"
-                              required
-                              value={passwordData.new_password}
-                              onChange={(e) => setPasswordData({...passwordData, new_password: e.target.value})}
-                              className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2 text-xs outline-none focus:border-teal-500/50"
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Confirm New Password</label>
-                            <input
-                              type="password"
-                              required
-                              value={passwordData.new_password_confirmation}
-                              onChange={(e) => setPasswordData({...passwordData, new_password_confirmation: e.target.value})}
-                              className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2 text-xs outline-none focus:border-teal-500/50"
-                            />
-                          </div>
-                        </div>
-
-                        <button
-                          type="submit"
-                          disabled={isSaving}
-                          className="w-full py-2.5 bg-teal-500 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl hover:bg-teal-600 transition-all flex items-center justify-center gap-2"
-                        >
-                          {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                          Update Secure Password
-                        </button>
-                      </form>
-                    )}
-
-                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800/60 hover:border-teal-500/30 transition-all cursor-pointer group">
-                       <div className="flex items-center gap-3.5">
-                          <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl text-slate-400 group-hover:text-teal-500 transition-colors border border-slate-100 dark:border-slate-800">
-                             <Smartphone size={16} />
-                          </div>
-                          <div>
-                             <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Two-Factor Authentication (2FA)</h4>
-                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Secure operations using dual validation keys</p>
-                          </div>
-                       </div>
-                       <div className="bg-emerald-500/10 text-emerald-600 text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wide">Enabled</div>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Account Destruction Zone */}
-                <section className="pt-8 border-t border-slate-100 dark:border-slate-800/40">
-                  <h2 className="text-base font-black text-rose-500 mb-4">Danger Zone Operations</h2>
-                  <div className="p-5 bg-rose-500/[0.02] dark:bg-rose-500/5 rounded-2xl border border-rose-100 dark:border-rose-500/10">
-                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-                        <div className="space-y-0.5">
-                           <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Deactivate Repository Account</h4>
-                           <p className="text-[11px] text-slate-400 max-w-sm leading-relaxed font-light">Permanently clear out your cloud uploader record nodes and asset indices. This lifecycle operation is irreversible.</p>
-                        </div>
-                        <button
-                          onClick={handleDeleteAccount}
-                          disabled={isSaving}
-                          className="px-4 py-2.5 bg-rose-500 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl hover:bg-rose-600 transition-colors flex items-center gap-1.5 shrink-0 shadow-xs disabled:opacity-50"
-                        >
-                           {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 size={14} />}
-                           Delete Account
-                        </button>
-                     </div>
-                  </div>
-                </section>
-              </div>
-            )}
-
-
-            {/* 4. PRIVACY CONTROLS LAYER */}
-            {activeSection === 'privacy' && (
-              <div className="space-y-8 motion-safe:animate-in motion-safe:fade-in duration-300">
-                 <section>
-                    <h2 className="text-base font-black text-slate-900 dark:text-white mb-6">Privacy & Discovery Architecture</h2>
-                    <div className="space-y-4">
-
-                       <div className="p-5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800/60">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
-                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-white dark:bg-slate-900 rounded-xl text-teal-500 border border-slate-100 dark:border-slate-800">
-                                   <Eye size={16} />
-                                </div>
-                                <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Workspace Visibility Parameter</h4>
-                             </div>
-
-                             <select className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl text-[11px] font-bold text-slate-600 dark:text-slate-300 px-3 py-1.5 shadow-2xs outline-none focus:border-teal-500/40">
-                                <option>Public (All Peers)</option>
-                                <option>Verified Students Only</option>
-                                <option>Strict Sandbox Private</option>
-                             </select>
-                          </div>
-                          <p className="text-[11px] text-slate-400 leading-relaxed font-light">Configure authorization matrix policies determining which visitor categories can audit your tracking files or upload sheets.</p>
-                       </div>
-
-                       <div className="p-5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800/60">
-                          <div className="flex items-center justify-between gap-4 mb-3">
-                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-white dark:bg-slate-900 rounded-xl text-teal-500 border border-slate-100 dark:border-slate-800">
-                                   <Globe size={16} />
-                                </div>
-                                <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Search Engine Index Pipeline</h4>
-                             </div>
-
-                             <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                                <input type="checkbox" className="sr-only peer" defaultChecked />
-                                <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
-                             </label>
-                          </div>
-                          <p className="text-[11px] text-slate-400 leading-relaxed font-light">Allow external web engines like Google to index your catalogued public documents to promote remote provincial access pipelines.</p>
-                       </div>
-
-                    </div>
-                 </section>
-              </div>
-            )}
-
+            <div className="flex items-center gap-3">
+              {saveSuccess && <span className="text-xs text-green-600 font-medium animate-pulse">Changes Saved</span>}
+              <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded text-xs font-medium transition-colors flex items-center gap-2">
+                {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Save Profile
+              </button>
+            </div>
           </div>
-        </main>
 
-      </div>
+          {/* Personal Info */}
+          <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-xs">
+            <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-gray-800 pb-2.5">
+              <User size={15} className="text-slate-400" />
+              <h2 className="text-xs font-semibold text-slate-900 dark:text-white">Personal Information</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-400">Full Display Name</label>
+                <input type="text" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded px-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-teal-600" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-400">Username (@)</label>
+                <div className="relative">
+                  <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+                  <input type="text" value={profile.username} onChange={(e) => setProfile({ ...profile, username: e.target.value })} className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded pl-8 pr-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-teal-600" placeholder="unique_username" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-400">Email Address</label>
+                <input type="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded px-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-teal-600" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-400">Country / Region</label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+                  <input type="text" value={profile.country} onChange={(e) => setProfile({ ...profile, country: e.target.value })} className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded pl-8 pr-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-teal-600" placeholder="e.g. Cambodia" />
+                </div>
+              </div>
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-[11px] font-medium text-slate-400">Biography</label>
+                <textarea rows={3} value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} placeholder="Tell us about yourself..." className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded px-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-teal-600 resize-none" />
+              </div>
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-[11px] font-medium text-slate-400">Research Interests (Comma separated)</label>
+                <input type="text" value={profile.research_interests} onChange={(e) => setProfile({ ...profile, research_interests: e.target.value })} placeholder="e.g. Machine Learning, Physics, History" className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded px-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-teal-600" />
+              </div>
+            </div>
+          </section>
+
+          {/* Education Context Block */}
+          <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-xs">
+            <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-gray-800 pb-2.5">
+              <BookOpen size={15} className="text-slate-400" />
+              <h2 className="text-xs font-semibold text-slate-900 dark:text-white">Education & Affiliations</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-400">University Affiliation</label>
+                <select
+                  value={profile.university_id}
+                  onChange={(e) => setProfile({ ...profile, university_id: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded px-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-teal-600"
+                >
+                  <option value="">Select University</option>
+                  {universities.map((u: any) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-400">Custom Affiliation (if not in list)</label>
+                <input type="text" placeholder="e.g. Research Institute" value={profile.affiliation} onChange={(e) => setProfile({ ...profile, affiliation: e.target.value })} className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded px-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-teal-600" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-400">Academic Title</label>
+                <div className="relative">
+                  <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+                  <input type="text" placeholder="e.g. PhD Candidate, Professor" value={profile.academic_title} onChange={(e) => setProfile({ ...profile, academic_title: e.target.value })} className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded pl-8 pr-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-teal-600" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-400">Major / Field of Study</label>
+                <input type="text" placeholder="e.g. Computer Science" value={profile.major} onChange={(e) => setProfile({ ...profile, major: e.target.value })} className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded px-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-teal-600" />
+              </div>
+            </div>
+          </section>
+
+          {/* Social Links */}
+          <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-xs">
+            <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-gray-800 pb-2.5">
+              <Globe size={15} className="text-slate-400" />
+              <h2 className="text-xs font-semibold text-slate-900 dark:text-white">Social Presence</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-400 flex items-center gap-1"><Facebook size={10}/> Facebook URL</label>
+                <input type="url" value={profile.social_links.facebook} onChange={(e) => setProfile({ ...profile, social_links: {...profile.social_links, facebook: e.target.value} })} className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded px-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-teal-600" placeholder="https://facebook.com/username" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-400 flex items-center gap-1"><Instagram size={10}/> Instagram URL</label>
+                <input type="url" value={profile.social_links.instagram} onChange={(e) => setProfile({ ...profile, social_links: {...profile.social_links, instagram: e.target.value} })} className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded px-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-teal-600" placeholder="https://instagram.com/username" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-400 flex items-center gap-1"><Music2 size={10}/> TikTok URL</label>
+                <input type="url" value={profile.social_links.tiktok} onChange={(e) => setProfile({ ...profile, social_links: {...profile.social_links, tiktok: e.target.value} })} className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded px-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-teal-600" placeholder="https://tiktok.com/@username" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-slate-400 flex items-center gap-1"><LinkIcon size={10}/> Personal Website</label>
+                <input type="url" value={profile.social_links.website} onChange={(e) => setProfile({ ...profile, social_links: {...profile.social_links, website: e.target.value} })} className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded px-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-teal-600" placeholder="https://yourwebsite.com" />
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : (
+        /* ACCOUNT SECURITY AND PRIVACY WRAPPER PANEL */
+        <div className="space-y-6 animate-in fade-in duration-150">
+
+          {/* Security Management Credentials */}
+          <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-xs">
+            <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-gray-800 pb-2.5">
+              <Lock size={15} className="text-slate-400" />
+              <h2 className="text-xs font-semibold text-slate-900 dark:text-white">Security Credentials</h2>
+            </div>
+
+            {!isChangingPassword ? (
+              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-gray-800/40 border border-slate-200 dark:border-gray-700 rounded">
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-900 dark:text-white">Modify Master Password</h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Keep your repository account safe by updating your login validation keys.</p>
+                </div>
+                <button type="button" onClick={() => setIsChangingPassword(true)} className="px-3 py-1.5 border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded text-xs font-medium hover:bg-slate-50">
+                  Change Password
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleChangePassword} className="border border-slate-200 dark:border-gray-700 rounded p-4 space-y-4 bg-slate-50/50 dark:bg-gray-800/20">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-xs font-semibold text-slate-900 dark:text-white">Modify Master Password</h4>
+                  <button type="button" onClick={() => setIsChangingPassword(false)} className="text-xs text-slate-400 hover:text-rose-600 font-medium">Cancel</button>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium text-slate-400">Current Password</label>
+                  <input type="password" required value={passwordData.current_password} onChange={(e) => setPasswordData({...passwordData, current_password: e.target.value})} className="w-full bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded px-3 py-1.5 text-xs outline-none focus:border-teal-600" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-slate-400">New Password</label>
+                    <input type="password" required value={passwordData.new_password} onChange={(e) => setPasswordData({...passwordData, new_password: e.target.value})} className="w-full bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded px-3 py-1.5 text-xs outline-none focus:border-teal-600" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-slate-400">Confirm New Password</label>
+                    <input type="password" required value={passwordData.new_password_confirmation} onChange={(e) => setPasswordData({...passwordData, new_password_confirmation: e.target.value})} className="w-full bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded px-3 py-1.5 text-xs outline-none focus:border-teal-600" />
+                  </div>
+                </div>
+                <button type="submit" disabled={isSaving} className="px-4 py-2 bg-teal-600 text-white font-medium text-xs rounded hover:bg-teal-700 transition-colors flex items-center justify-center gap-2">
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Update Access Key
+                </button>
+              </form>
+            )}
+          </section>
+
+          {/* Privacy Parameters */}
+          <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-xs">
+            <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-gray-800 pb-2.5">
+              <Eye size={15} className="text-slate-400" />
+              <h2 className="text-xs font-semibold text-slate-900 dark:text-white">Privacy & Index Discovery</h2>
+            </div>
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-gray-800/40 rounded border border-slate-100 dark:border-gray-800">
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-900 dark:text-white">Workspace Visibility Matrix</h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Control who can discover your tracking indices and public catalogs.</p>
+                </div>
+                <select className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded text-xs px-3 py-1.5 outline-none focus:border-teal-600">
+                  <option>Public (All Users)</option>
+                  <option>Verified Colleagues Only</option>
+                  <option>Private Workspace</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-gray-800/40 rounded border border-slate-100 dark:border-gray-800">
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-900 dark:text-white">External Engine Indexing</h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Allow public web search tools to catalogue your shared academic files.</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input type="checkbox" className="sr-only peer" defaultChecked />
+                  <div className="w-9 h-5 bg-slate-200 dark:bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600" />
+                </label>
+              </div>
+            </div>
+          </section>
+
+          {/* Account Lifecycle Termination (Danger Zone) */}
+          <section className="bg-white dark:bg-gray-900 border border-rose-200 dark:border-rose-950/40 rounded-xl p-6 shadow-xs">
+            <div className="flex items-center gap-2 mb-3 border-b border-rose-50 dark:border-rose-950/10 pb-2.5">
+              <Trash2 size={15} className="text-rose-500" />
+              <h2 className="text-xs font-semibold text-rose-500">Danger Zone</h2>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h4 className="text-xs font-semibold text-slate-900 dark:text-white">Delete Account Repository Record</h4>
+                <p className="text-[11px] text-slate-400 mt-0.5">Permanently tear down your file tracking keys, logs, and storage assets. This action cannot be reversed.</p>
+              </div>
+              <button onClick={handleDeleteAccount} disabled={isSaving} className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-medium transition-colors shrink-0 shadow-xs">
+                Delete Account
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
     </div>
   )
 }

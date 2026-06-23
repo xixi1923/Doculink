@@ -20,6 +20,11 @@ class DocumentController extends Controller
         return response()->json($this->documentService->getAllDocuments($request->all()));
     }
 
+    public function trending()
+    {
+        return response()->json($this->documentService->getTrendingDocuments());
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -40,22 +45,39 @@ class DocumentController extends Controller
 
     public function show($id)
     {
-        $document = $this->documentService->getDocumentDetails($id);
-        $document->increment('view_count');
+        try {
+            $document = $this->documentService->getDocumentDetails($id);
+            $document->increment('view_count');
 
-        if (Auth::check()) {
-            $document->is_favorited = $document->favorites()->where('user_id', Auth::id())->exists();
-        } else {
-            $document->is_favorited = false;
+            // If user is logged in, we already loaded is_favorited and is_liked via withExists in the service
+
+            return response()->json($document);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'trace' => $e->getTrace()
+            ], 500);
         }
-
-        return response()->json($document);
     }
 
     public function comment(Request $request, $id)
     {
-        $request->validate(['content' => 'required|string']);
-        $comment = $this->documentService->addComment($id, Auth::id(), $request->content);
+        $request->validate(['content' => 'required|string', 'parent_id' => 'nullable|exists:comments,id']);
+        $comment = $this->documentService->addComment($id, Auth::id(), $request->content, $request->parent_id);
+
+        // Trigger notification
+        $document = \App\Models\Document::find($id);
+        if ($document && $document->user_id !== Auth::id()) {
+            \App\Models\Notification::create([
+                'user_id' => $document->user_id,
+                'type' => 'document_comment',
+                'title' => 'New Comment',
+                'message' => Auth::user()->name . ' commented on your document: ' . $document->title,
+                'related_id' => $document->id,
+                'related_type' => 'document'
+            ]);
+        }
+
         return response()->json($comment->load('user'), 201);
     }
 
@@ -64,5 +86,36 @@ class DocumentController extends Controller
         $document = $this->documentService->getDocumentDetails($id);
         $document->increment('download_count');
         return response()->json(['url' => $document->file_path]);
+    }
+
+    public function getUserDocuments($userId)
+    {
+        $documents = \App\Models\Document::where('user_id', $userId)
+            ->with(['category', 'university'])
+            ->withCount(['comments', 'favorites'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($documents);
+    }
+
+    public function destroy($id)
+    {
+        $document = \App\Models\Document::findOrFail($id);
+
+        if ($document->user_id !== Auth::id() && Auth::user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Delete from R2
+        $path = parse_url($document->file_path, PHP_URL_PATH);
+        $path = ltrim($path, '/');
+        if (\Illuminate\Support\Facades\Storage::disk('r2')->exists($path)) {
+            \Illuminate\Support\Facades\Storage::disk('r2')->delete($path);
+        }
+
+        $document->delete();
+
+        return response()->json(['message' => 'Document deleted successfully']);
     }
 }

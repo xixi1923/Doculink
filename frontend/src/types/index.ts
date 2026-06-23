@@ -1,14 +1,27 @@
 export interface User {
   id: number;
+  username?: string;
   name: string;
   email: string;
   avatar?: string;
-  role: 'student' | 'moderator' | 'admin';
+  role: 'user' | 'moderator' | 'admin';
   school?: string;
-  university?: string;
+  university_id?: number;
+  university?: any;
   major?: string;
   bio?: string;
+  affiliation?: string;
+  country?: string;
+  academic_title?: string;
+  research_interests?: string[];
+  social_links?: {
+    facebook?: string;
+    instagram?: string;
+    tiktok?: string;
+    website?: string;
+  };
   documents_count?: number;
+  created_at: string;
 }
 
 export interface Document {

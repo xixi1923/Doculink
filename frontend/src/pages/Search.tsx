@@ -225,15 +225,15 @@ export default function Search() {
                     </div>
 
                     <div className="flex items-center gap-3 mb-5 flex-wrap">
-                        <div className="flex items-center gap-2">
-                             <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-teal-600 overflow-hidden">
-                                {item.user?.avatar ? <img src={item.user.avatar} className="w-full h-full object-cover" /> : (item.user?.name?.charAt(0) || item.author?.charAt(0) || 'U')}
+                        <Link to={item.user?.username ? `/profile/${item.user.username}` : (item.user?.id ? `/user/${item.user.id}` : '#')} className="flex items-center gap-2 group/user">
+                             <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-teal-600 overflow-hidden group-hover/user:border-teal-500 transition-all border border-transparent shrink-0">
+                                {item.user?.avatar ? <img src={item.user.avatar} className="w-full h-full object-cover" crossOrigin="anonymous" /> : (item.user?.name?.charAt(0) || item.author?.charAt(0) || 'U')}
                              </div>
-                             <span className="text-[11px] font-bold text-slate-800">{item.user?.name || item.author}</span>
-                        </div>
+                             <span className="text-[11px] font-bold text-slate-800 group-hover/user:text-teal-600 transition-colors truncate max-w-[120px]">{item.user?.name || item.author}</span>
+                        </Link>
                         <span className="text-slate-300">•</span>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em]">
-                             {item.university?.short_name || item.university?.name || 'Academic Institution'}
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] truncate max-w-[150px]">
+                             {item.user?.academic_title || item.university?.short_name || item.university?.name || 'Academic Institution'}
                         </span>
                     </div>
 

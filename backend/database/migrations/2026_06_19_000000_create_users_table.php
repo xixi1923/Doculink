@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('firebase_uid')->unique()->nullable();
+            $table->string('username')->unique()->nullable();
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password')->nullable();
@@ -18,6 +19,12 @@ return new class extends Migration
             $table->text('bio')->nullable();
             $table->foreignId('university_id')->nullable();
             $table->string('major')->nullable();
+            $table->string('school')->nullable();
+            $table->string('affiliation')->nullable();
+            $table->string('country')->nullable();
+            $table->string('academic_title')->nullable();
+            $table->json('research_interests')->nullable();
+            $table->json('social_links')->nullable();
             $table->string('role')->default('user'); // admin, user
             $table->string('status')->default('active'); // active, suspended
             $table->rememberToken();

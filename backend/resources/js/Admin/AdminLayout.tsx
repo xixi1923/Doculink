@@ -17,6 +17,7 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState<any>({});
+  const [loading, setLoading] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
 
   const logout = () => {
@@ -30,24 +31,42 @@ export default function AdminLayout() {
     const storedUser = localStorage.getItem('user');
 
     if (!token || !storedUser) {
+      console.log('No token or user found, redirecting...');
       navigate('/', { replace: true });
       return;
     }
 
-    setUser(JSON.parse(storedUser));
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      setLoading(false);
 
-    api.get('/admin/dashboard')
-      .then(res => setStats(res.data.stats))
-      .catch(err => {
-        // If it's a 401, the interceptor will handle the redirect
-        if (err.response?.status !== 401) {
-          console.error('Failed to load dashboard stats:', err);
-        }
-      })
-      .finally(() => setLoadingStats(false));
+      api.get('/admin/dashboard')
+        .then(res => {
+          if (res.data && res.data.stats) {
+            setStats(res.data.stats);
+          }
+        })
+        .catch(err => {
+          if (err.response?.status !== 401) {
+            console.error('Failed to load dashboard stats:', err);
+          }
+        })
+        .finally(() => setLoadingStats(false));
+    } catch (e) {
+      console.error('Failed to parse user data:', e);
+      logout();
+    }
   }, [navigate]);
 
-  if (!user) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div className="animate-spin w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full mb-4"></div>
+        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Initializing Admin Session...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -61,14 +80,18 @@ export default function AdminLayout() {
             </p>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/5 px-5 py-4 shadow-lg shadow-teal-950/20 max-w-sm">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-500 text-white shrink-0 overflow-hidden border-2 border-teal-400/30">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                ) : (
+                  <ShieldCheck size={20} />
+                )}
+              </div>
               <div className="min-w-0">
                 <p className="text-xs uppercase tracking-[0.35em] text-teal-300">Signed in as</p>
-                <p className="text-base font-semibold truncate">{user?.name || 'Administrator'}</p>
+                <p className="text-base font-semibold truncate leading-tight">{user?.name || 'Administrator'}</p>
                 <p className="text-sm text-slate-300 truncate">{user?.email}</p>
-              </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-teal-500 text-white shrink-0">
-                <ShieldCheck size={20} />
               </div>
             </div>
           </div>

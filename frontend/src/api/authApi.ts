@@ -46,6 +46,62 @@ export const getProfile = async () => {
   return response.data
 }
 
+export const getUserProfile = async (id: string) => {
+  const response = await api.get(`/users/${id}`)
+  return response.data
+}
+
+export const getPublicProfileApi = async (username: string) => {
+  const response = await api.get(`/profiles/${username}`)
+  return response.data
+}
+
+export const getUserDocumentsApi = async (id: string) => {
+  const response = await api.get(`/users/${id}/documents`)
+  return response.data
+}
+
+export const followUserApi = async (id: string) => {
+  const response = await api.post(`/users/${id}/follow`)
+  return response.data
+}
+
+export const unfollowUserApi = async (id: string) => {
+  const response = await api.delete(`/users/${id}/follow`)
+  return response.data
+}
+
+export const deleteDocumentApi = async (id: string) => {
+  const response = await api.delete(`/documents/${id}`)
+  return response.data
+}
+
+// Comments API
+export const updateCommentApi = async (id: number, content: string) => {
+    const response = await api.put(`/comments/${id}`, { content })
+    return response.data
+}
+
+export const deleteCommentApi = async (id: number) => {
+    const response = await api.delete(`/comments/${id}`)
+    return response.data
+}
+
+export const replyCommentApi = async (id: number, content: string) => {
+    const response = await api.post(`/comments/${id}/reply`, { content })
+    return response.data
+}
+
+export const toggleCommentLikeApi = async (id: number) => {
+    const response = await api.post(`/comments/${id}/like`)
+    return response.data
+}
+
+export const toggleDocumentLikeApi = async (id: number) => {
+    const response = await api.post(`/documents/${id}/like`)
+    return response.data
+}
+
 export const updateProfile = async (userData: any) => {
   const response = await api.put('/profile', userData)
   return response.data
@@ -81,30 +137,101 @@ export const getUniversityDetail = async (id: string) => {
   return response.data
 }
 
-// Messages API (Stubs for now as backend is not ready)
-export const getChats = async () => {
-  try {
-    const response = await api.get('/chats')
-    return response.data
-  } catch (error) {
-    console.warn('Chats API not found, returning empty array')
-    return []
-  }
-}
-
-export const getMessages = async (chatId: number) => {
-  try {
-    const response = await api.get(`/chats/${chatId}/messages`)
-    return response.data
-  } catch (error) {
-    console.warn('Messages API not found, returning empty array')
-    return []
-  }
-}
-
-export const sendMessageApi = async (data: { receiver_id: number; message: string }) => {
-  const response = await api.post('/messages', data)
+// Messages API
+export const getConversations = async () => {
+  const response = await api.get('/messages/conversations')
   return response.data
+}
+
+export const searchUsersApi = async (query: string) => {
+  const response = await api.get(`/messages/users/search?q=${query}`)
+  return response.data
+}
+
+export const startConversationApi = async (userId: string | number) => {
+  const response = await api.post('/messages/start', { user_id: userId })
+  return response.data
+}
+
+export const getUnreadMessagesCount = async () => {
+  const response = await api.get('/messages/unread-count')
+  return response.data
+}
+
+export const getConversationMessages = async (conversationId: number | string) => {
+  const response = await api.get(`/messages/${conversationId}`)
+  return response.data
+}
+
+export const sendChatMessageApi = async (conversationId: number | string, message: string) => {
+  const response = await api.post('/messages/send', { conversation_id: conversationId, message })
+  return response.data
+}
+
+export const markConversationAsRead = async (conversationId: number | string) => {
+  const response = await api.put('/messages/read', { conversation_id: conversationId })
+  return response.data
+}
+
+// Conversation management
+export const deleteConversationApi = async (conversationId: number | string) => {
+  const response = await api.delete(`/messages/${conversationId}/delete`)
+  return response.data
+}
+
+export const endConversationApi = async (conversationId: number | string) => {
+  const response = await api.post(`/messages/${conversationId}/end`)
+  return response.data
+}
+
+export const reopenConversationApi = async (conversationId: number | string) => {
+  const response = await api.post(`/messages/${conversationId}/reopen`)
+  return response.data
+}
+
+// User blocking
+export const blockUserApi = async (userId: number | string, reason?: string) => {
+  const response = await api.post('/users/block', { user_id: userId, reason })
+  return response.data
+}
+
+export const unblockUserApi = async (userId: number | string) => {
+  const response = await api.post(`/users/${userId}/unblock`)
+  return response.data
+}
+
+export const getBlockedUsersApi = async () => {
+  const response = await api.get('/users/blocked')
+  return response.data
+}
+
+// Typing indicators
+export const setTypingIndicatorApi = async (conversationId: number | string, isTyping: boolean) => {
+  const response = await api.post(`/messages/${conversationId}/typing`, { is_typing: isTyping })
+  return response.data
+}
+
+export const getTypingIndicatorsApi = async (conversationId: number | string) => {
+  const response = await api.get(`/messages/${conversationId}/typing-users`)
+  return response.data
+}
+
+export const downloadAttachmentApi = async (attachmentId: number | string, fileName: string) => {
+  const response = await api.get(`/messages/attachments/${attachmentId}/download`, {
+    responseType: 'blob'
+  })
+
+  // Create a blob URL and trigger download
+  const url = window.URL.createObjectURL(new Blob([response.data]))
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', fileName)
+  document.body.appendChild(link)
+  link.click()
+
+  // Clean up
+  link.parentNode?.removeChild(link)
+  window.URL.revokeObjectURL(url)
 }
 
 export default api

@@ -26,6 +26,8 @@ export default function Login() {
       const response = await firebaseLogin({
         email: user.email,
         name: user.displayName,
+        uid: user.uid,
+        avatar: user.photoURL,
       })
       setAuth(response.user, response.token)
       navigate(response.user?.role === 'admin' ? '/admin/dashboard' : '/')
@@ -48,6 +50,8 @@ export default function Login() {
       const response = await firebaseLogin({
         email: user.email,
         name: user.displayName,
+        uid: user.uid,
+        avatar: user.photoURL,
       })
       setAuth(response.user, response.token)
       navigate('/')

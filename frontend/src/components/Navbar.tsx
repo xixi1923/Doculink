@@ -1,13 +1,40 @@
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Bell, MessageSquare } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import CreateMenu from './CreateMenu'
 import UserDropdown from './UserDropdown'
 import ThemeToggle from './ThemeToggle'
+import { getUnreadNotificationsCount } from '@/api/notificationsApi'
+import { getUnreadMessagesCount } from '@/api/authApi'
 
 export default function Navbar() {
   const location = useLocation()
   const { token } = useAuthStore()
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadMessages, setUnreadMessages] = useState(0)
+
+  useEffect(() => {
+    if (token) {
+      fetchUnreadCounts()
+      // Poll every minute
+      const interval = setInterval(fetchUnreadCounts, 60000)
+      return () => clearInterval(interval)
+    }
+  }, [token])
+
+  const fetchUnreadCounts = async () => {
+    try {
+      const [notifRes, msgRes] = await Promise.all([
+        getUnreadNotificationsCount(),
+        getUnreadMessagesCount()
+      ])
+      setUnreadCount(notifRes.count)
+      setUnreadMessages(msgRes.count)
+    } catch (error) {
+      console.error('Failed to fetch unread counts', error)
+    }
+  }
 
   const navLinks = [
     { label: 'Documents', path: '/search' },
@@ -57,14 +84,22 @@ export default function Navbar() {
                   className="text-gray-400 dark:text-gray-500 hover:text-primary relative p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all"
                 >
                   <MessageSquare size={22} />
-                  <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-primary border-2 border-white dark:border-gray-900 rounded-full"></span>
+                  {unreadMessages > 0 && (
+                    <span className="absolute top-1 right-1 min-w-[18px] h-[18px] bg-primary border-2 border-white dark:border-gray-900 rounded-full flex items-center justify-center text-[8px] font-black text-white">
+                        {unreadMessages > 9 ? '9+' : unreadMessages}
+                    </span>
+                  )}
                 </Link>
                 <Link
                   to="/notifications"
                   className="text-gray-400 dark:text-gray-500 hover:text-primary relative p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all"
                 >
                   <Bell size={22} />
-                  <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-gray-900 rounded-full"></span>
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 min-w-[18px] h-[18px] bg-red-500 border-2 border-white dark:border-gray-900 rounded-full flex items-center justify-center text-[8px] font-black text-white">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </Link>
               </div>
               <div className="h-8 w-px bg-gray-100 dark:bg-gray-800 hidden md:block"></div>

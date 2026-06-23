@@ -12,6 +12,11 @@ class DocumentRepository extends BaseRepository
         parent::__construct($model);
     }
 
+    public function all(array $columns = ['*'], array $relations = []): Collection
+    {
+        return $this->model->with($relations)->withCount(['comments', 'favorites'])->get($columns);
+    }
+
     public function search(array $filters): Collection
     {
         $query = $this->model->newQuery()->where('status', 'approved');
@@ -32,6 +37,14 @@ class DocumentRepository extends BaseRepository
             $query->where('university_id', $filters['university_id']);
         }
 
-        return $query->with(['user', 'category', 'university'])->get();
+        if (\Illuminate\Support\Facades\Auth::check()) {
+            $query->withExists(['favorites as is_favorited' => function($q) {
+                $q->where('user_id', \Illuminate\Support\Facades\Auth::id());
+            }]);
+        }
+
+        return $query->with(['user', 'category', 'university'])
+            ->withCount(['comments', 'favorites'])
+            ->get();
     }
 }

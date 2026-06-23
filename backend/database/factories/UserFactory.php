@@ -24,11 +24,24 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $name = fake()->name();
         return [
-            'name' => fake()->name(),
+            'name' => $name,
+            'username' => Str::slug($name) . fake()->numberBetween(1, 999),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'bio' => fake()->paragraph(),
+            'major' => fake()->word(),
+            'school' => fake()->word() . ' High School',
+            'affiliation' => fake()->company(),
+            'country' => fake()->country(),
+            'academic_title' => fake()->randomElement(['PhD Candidate', 'Professor', 'Student', 'Researcher']),
+            'research_interests' => [fake()->word(), fake()->word(), fake()->word()],
+            'social_links' => [
+                'linkedin' => 'https://linkedin.com/in/' . fake()->userName(),
+                'twitter' => 'https://twitter.com/' . fake()->userName(),
+            ],
             'remember_token' => Str::random(10),
         ];
     }

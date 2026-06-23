@@ -1,5 +1,6 @@
 import React from 'react'
-import { LogOut, X, AlertCircle } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { LogOut, X } from 'lucide-react'
 
 interface LogoutModalProps {
   isOpen: boolean
@@ -10,49 +11,60 @@ interface LogoutModalProps {
 export default function LogoutModal({ isOpen, onClose, onConfirm }: LogoutModalProps) {
   if (!isOpen) return null
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-      {/* Backdrop */}
+  // We wrap the modal in a Portal to render it at the root body layer, escaping parent layout clips
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+
+      {/* Clickable Background Overlay */}
       <div
-        className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-300"
+        className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
 
-      {/* Modal Card */}
-      <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-8 text-center">
-          <div className="w-16 h-16 bg-rose-50 dark:bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
-            <LogOut size={32} />
+      {/* Centered Modal Content Card */}
+      <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-800 p-6 md:p-8 transform transition-all duration-200 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+
+        {/* Upper Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+          aria-label="Close modal"
+        >
+          <X size={16} />
+        </button>
+
+        {/* Modal Body Info */}
+        <div className="text-center mt-2">
+          <div className="w-12 h-12 bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400 rounded-full flex items-center justify-center mx-auto mb-4">
+            <LogOut size={22} />
           </div>
 
-          <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight mb-2">End Session?</h3>
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed">
-            Are you sure you want to log out of the DocuLink matrix? You will need to re-authenticate to upload or save resources.
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+            Confirm Logout
+          </h3>
+          <p className="text-slate-500 dark:text-gray-400 text-xs leading-relaxed max-w-xs mx-auto">
+            Are you sure you want to log out of DocuLink? You will need to re-authenticate to manage your uploads or save workspace resources.
           </p>
 
-          <div className="grid grid-cols-2 gap-3 mt-10">
+          {/* Action Choice Buttons */}
+          <div className="flex flex-col sm:flex-row gap-2 mt-6">
             <button
               onClick={onClose}
-              className="py-3.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-750 transition-all"
+              className="w-full order-2 sm:order-1 py-2 px-4 border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-300 rounded-md text-xs font-medium hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
             >
-              Stay Logged In
+              Cancel
             </button>
             <button
               onClick={onConfirm}
-              className="py-3.5 bg-rose-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 shadow-lg shadow-rose-500/20 transition-all"
+              className="w-full order-1 sm:order-2 py-2 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-xs font-medium shadow-sm transition-colors"
             >
-              Confirm Logout
+              Log Out
             </button>
           </div>
         </div>
 
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-        >
-          <X size={20} />
-        </button>
       </div>
-    </div>
+    </div>,
+    document.body // Renders directly into <body> to stay on top of the entire screen
   )
 }

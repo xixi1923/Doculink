@@ -12,7 +12,8 @@ import BookReader from './pages/BookReader'
 import Search from './pages/Search'
 import Universities from './pages/Universities'
 import UniversityDetail from './pages/Universities/UniversityDetail'
-import Profile from './pages/Profile'
+import MyProfile from './pages/Profile/MyProfile'
+import PublicProfile from './pages/Profile/PublicProfile'
 import Settings from './pages/Profile/Settings'
 import MyDocuments from './pages/Profile/MyDocuments'
 import Community from './pages/Community'
@@ -87,7 +88,9 @@ function App() {
         <Route path="trending" element={<Trending />} />
         <Route path="messages" element={<Messages />} />
         <Route path="notifications" element={<Notifications />} />
-        <Route path="profile" element={<Profile />} />
+        <Route path="profile" element={<MyProfile />} />
+        <Route path="user/:id" element={<PublicProfile />} />
+        <Route path="profile/:username" element={<PublicProfile />} />
         <Route path="profile/settings" element={<Settings />} />
         <Route path="profile/documents" element={<MyDocuments />} />
         <Route path="community" element={<Community />} />

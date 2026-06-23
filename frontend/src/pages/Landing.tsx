@@ -325,7 +325,7 @@ export default function Landing(): React.JSX.Element {
                   <p className="text-slate-600 dark:text-gray-400 text-xs leading-relaxed italic mb-5">"{t.quote}"</p>
                 </div>
                 <div className="flex items-center gap-2.5 border-t border-slate-100 dark:border-gray-800 pt-3">
-                  <img src={t.avatar} alt={t.name} className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-200 dark:border-gray-700 transition-transform duration-300 hover:scale-105" />
+                  <img src={t.avatar} alt={t.name} className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-200 dark:border-gray-700 transition-transform duration-300 hover:scale-105" crossOrigin="anonymous" />
                   <div>
                     <h4 className="text-xs font-extrabold text-slate-900 dark:text-white leading-tight">{t.name}</h4>
                     <p className="text-[9px] text-slate-400 dark:text-gray-500 font-bold uppercase tracking-wider">{t.role}</p>

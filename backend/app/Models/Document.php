@@ -51,4 +51,9 @@ class Document extends Model
     {
         return $this->hasMany(Favorite::class);
     }
+
+    public function likes()
+    {
+        return $this->morphMany(Like::class, 'likeable');
+    }
 }

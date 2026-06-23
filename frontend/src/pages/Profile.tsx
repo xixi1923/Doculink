@@ -10,26 +10,31 @@ import {
   Download,
   Upload
 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
-import { getProfile } from '@/api/authApi'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { getProfile, getUserProfile } from '@/api/authApi'
 import { useAuthStore } from '@/store/authStore'
+import { useFollow } from '@/hooks/useFollow'
+import FollowButton from '@/components/FollowButton'
 
 type TabType = 'uploads' | 'fav_docs' | 'fav_books';
 
 export default function Profile(): React.JSX.Element {
-  const { logout } = useAuthStore()
+  const { user: currentUser, logout } = useAuthStore()
+  const { id: userId } = useParams()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<TabType>('uploads')
   const [profileData, setProfileData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const { relationship, loading: relationshipLoading } = useFollow(userId)
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [userId])
 
   const fetchData = async () => {
+    setIsLoading(true)
     try {
-      const data = await getProfile()
+      const data = userId ? await getUserProfile(userId) : await getProfile()
       setProfileData(data)
     } catch (error) {
       console.error('Failed to fetch profile', error)
@@ -63,6 +68,10 @@ export default function Profile(): React.JSX.Element {
   const { user, stats } = profileData
   const initials = user.name ? user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U'
 
+  // Use relationship stats if available, otherwise fall back to profile stats
+  const displayFollowersCount = relationship?.followers_count ?? stats?.followers_count ?? 0
+  const displayFollowingCount = relationship?.following_count ?? stats?.following_count ?? 0
+
   // Filter content based on active tab
   const getTabContent = () => {
     if (activeTab === 'uploads') {
@@ -79,6 +88,15 @@ export default function Profile(): React.JSX.Element {
 
   const currentItems = getTabContent()
 
+  // Filter tabs based on whether it's the current user or someone else
+  const tabs = userId && Number(userId) !== currentUser?.id
+    ? [{ id: 'uploads', label: 'Contributions', icon: Upload }]
+    : [
+        { id: 'uploads', label: 'My Uploads', icon: Upload },
+        { id: 'fav_docs', label: 'Saved Documents', icon: FileText },
+        { id: 'fav_books', label: 'Saved Books', icon: BookOpen },
+      ];
+
   return (
     <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 font-sans text-slate-800 dark:text-gray-200 animate-in fade-in slide-in-from-bottom duration-500">
 
@@ -92,7 +110,7 @@ export default function Profile(): React.JSX.Element {
           <div className="relative flex flex-col md:flex-row items-end md:items-center gap-6 -mt-12 mb-8">
             {/* Avatar */}
             <div className="w-24 h-24 rounded-3xl border-4 border-white dark:border-gray-900 bg-slate-100 dark:bg-slate-800 shadow-lg flex items-center justify-center text-3xl font-black text-teal-600 shrink-0 overflow-hidden">
-              {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" alt="" /> : <span>{initials}</span>}
+              {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" alt="" crossOrigin="anonymous" /> : <span>{initials}</span>}
             </div>
 
             {/* Name & Title */}
@@ -110,13 +128,22 @@ export default function Profile(): React.JSX.Element {
 
             {/* Actions */}
             <div className="flex gap-3 pt-4">
-              <Link to="/profile/settings" className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-gray-700 font-black text-[10px] uppercase tracking-widest text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800 transition-all flex items-center gap-2">
-                <SettingsIcon size={14} /> Settings
-              </Link>
+              {!userId || Number(userId) === currentUser?.id ? (
+                <Link to="/profile/settings" className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-gray-700 font-black text-[10px] uppercase tracking-widest text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-800 transition-all flex items-center gap-2">
+                  <SettingsIcon size={14} /> Settings
+                </Link>
+              ) : (
+                <>
+                  <FollowButton userId={userId || ''} userName={user.name} variant="primary" />
+                  <Link to={`/messages?user=${userId}`} className="px-5 py-2.5 rounded-xl border border-teal-500 text-teal-500 font-black text-[10px] uppercase tracking-widest hover:bg-teal-500/5 transition-all">
+                    Message
+                  </Link>
+                </>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-10 py-6 border-t border-slate-50 dark:border-gray-800">
+            <div className="flex gap-10 py-6 border-t border-slate-50 dark:border-gray-800">
             <div className="flex items-center gap-2.5">
               <span className="font-black text-xl text-slate-900 dark:text-white">{stats.total_uploads}</span>
               <span className="text-slate-400 dark:text-gray-500 text-[10px] font-black uppercase tracking-widest">Total Uploads</span>
@@ -125,6 +152,18 @@ export default function Profile(): React.JSX.Element {
               <span className="font-black text-xl text-slate-900 dark:text-white">{stats.total_downloads}</span>
               <span className="text-slate-400 dark:text-gray-500 text-[10px] font-black uppercase tracking-widest">Total Downloads</span>
             </div>
+            {userId && (
+              <>
+                <div className="flex items-center gap-2.5">
+                  <span className="font-black text-xl text-slate-900 dark:text-white">{displayFollowersCount}</span>
+                  <span className="text-slate-400 dark:text-gray-500 text-[10px] font-black uppercase tracking-widest">Followers</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="font-black text-xl text-slate-900 dark:text-white">{displayFollowingCount}</span>
+                  <span className="text-slate-400 dark:text-gray-500 text-[10px] font-black uppercase tracking-widest">Following</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -133,11 +172,7 @@ export default function Profile(): React.JSX.Element {
         {/* Sidebar Nav */}
         <aside className="w-full md:w-64 shrink-0">
           <div className="bg-white dark:bg-gray-900 p-3 rounded-[28px] border border-slate-100 dark:border-gray-800 shadow-sm space-y-1">
-            {[
-              { id: 'uploads', label: 'My Uploads', icon: Upload },
-              { id: 'fav_docs', label: 'Saved Documents', icon: FileText },
-              { id: 'fav_books', label: 'Saved Books', icon: BookOpen },
-            ].map((tab) => (
+            {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
@@ -152,12 +187,14 @@ export default function Profile(): React.JSX.Element {
               </button>
             ))}
 
-            <div className="pt-4 mt-4 border-t border-slate-50 dark:border-gray-800">
-              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all">
-                <LogOut size={16} />
-                <span>Sign Out</span>
-              </button>
-            </div>
+            {(!userId || Number(userId) === currentUser?.id) && (
+              <div className="pt-4 mt-4 border-t border-slate-50 dark:border-gray-800">
+                <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all">
+                  <LogOut size={16} />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
           </div>
         </aside>
 

@@ -7,8 +7,11 @@ import {
   FileText,
   Check,
   Trash2,
-  Loader2
+  Loader2,
+  Reply,
+  ArrowRight
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import {
   getNotifications,
   markNotificationAsRead,
@@ -16,63 +19,22 @@ import {
   deleteNotification as deleteNotificationApi
 } from '@/api/notificationsApi'
 
-// ================= TYPES & INTERFACES =================
 interface NotificationItem {
   id: number;
-  type: 'like' | 'comment' | 'follow' | 'system';
-  user: string;
-  avatar: string | null;
-  content: string;
-  time: string;
-  isRead: boolean;
+  type: string;
+  title: string;
+  message: string;
+  related_id: number;
+  related_type: string;
+  read_at: string | null;
+  created_at: string;
 }
-
-type FilterType = 'all' | 'unread';
-
-// ================= MOCK DATABASE =================
-const MOCK_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 1,
-    type: 'like',
-    user: 'Sokea M.',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
-    content: 'liked your document "Grade 12 Physics Summary"',
-    time: '2 mins ago',
-    isRead: false
-  },
-  {
-    id: 2,
-    type: 'comment',
-    user: 'Leakena T.',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150',
-    content: 'commented: "This is exactly what I needed, thank you!"',
-    time: '1 hour ago',
-    isRead: false
-  },
-  {
-    id: 3,
-    type: 'follow',
-    user: 'Vibol R.',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150',
-    content: 'started following you',
-    time: '3 hours ago',
-    isRead: true
-  },
-  {
-    id: 4,
-    type: 'system',
-    user: 'DocuLink',
-    avatar: null,
-    content: 'Your document "National Exam Prep" has been approved!',
-    time: 'Yesterday',
-    isRead: true
-  }
-]
 
 export default function Notifications(): React.JSX.Element {
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
-  const [filter, setFilter] = useState<FilterType>('all')
+  const [filter, setFilter] = useState<'all' | 'unread'>('all')
   const [isLoading, setIsLoading] = useState(true)
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchNotifications()
@@ -82,15 +44,9 @@ export default function Notifications(): React.JSX.Element {
     setIsLoading(true)
     try {
       const data = await getNotifications()
-      // Map API data to UI items if needed, or assume they match
-      // For now let's assume they might need mapping if backend is different
-      // but let's try to just use what we get or fallback to mock if empty
-      if (data && data.length > 0) {
-        setNotifications(data)
-      } else {
-        // Fallback to mock data for demonstration if API is empty
-        // setNotifications(MOCK_NOTIFICATIONS)
-      }
+      // Filter based on user request: comment, reply, follow (and likes as they are social)
+      const allowedTypes = ['document_comment', 'comment_reply', 'follow', 'document_like', 'comment_like']
+      setNotifications(data.filter((n: NotificationItem) => allowedTypes.includes(n.type)))
     } catch (error) {
       console.error('Failed to fetch notifications', error)
     } finally {
@@ -98,51 +54,66 @@ export default function Notifications(): React.JSX.Element {
     }
   }
 
-  const markAsRead = async (id: number): void => {
+  const markAsRead = async (id: number) => {
     try {
       await markNotificationAsRead(id)
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n))
     } catch (error) {
-      console.error('Failed to mark notification as read', error)
+      console.error(error)
     }
   }
 
-  const deleteNotification = async (id: number): void => {
+  const handleDelete = async (id: number) => {
     try {
       await deleteNotificationApi(id)
       setNotifications(prev => prev.filter(n => n.id !== id))
     } catch (error) {
-      console.error('Failed to delete notification', error)
+      console.error(error)
     }
   }
 
-  const markAllAsRead = async (): void => {
-    try {
-      await markAllNotificationsAsRead()
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
-    } catch (error) {
-      console.error('Failed to mark all as read', error)
+  const handleNotificationClick = async (n: NotificationItem) => {
+    if (!n.read_at) markAsRead(n.id)
+
+    // Redirection logic
+    if (n.type === 'document_like' || n.type === 'document_comment' || n.type === 'comment_reply' || n.type === 'comment_like') {
+        navigate(`/documents/${n.related_id}`)
+    } else if (n.type === 'follow') {
+        navigate(`/user/${n.related_id}`)
     }
   }
 
-  const filteredNotifications = notifications.filter(n =>
-    filter === 'all' ? true : !n.isRead
-  )
-
-  const getIcon = (type: NotificationItem['type']): React.JSX.Element => {
+  const getIcon = (type: string) => {
     switch (type) {
-      case 'like':
+      case 'document_like':
+      case 'comment_like':
         return <Heart className="text-rose-500 fill-rose-500" size={12} />
-      case 'comment':
+      case 'document_comment':
         return <MessageSquare className="text-sky-500 fill-sky-500" size={12} />
+      case 'comment_reply':
+        return <Reply className="text-violet-500" size={12} />
       case 'follow':
         return <UserPlus className="text-emerald-500" size={12} />
-      case 'system':
-        return <FileText className="text-teal-500" size={12} />
       default:
         return <Bell size={12} />
     }
   }
+
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+    if (diffInSeconds < 60) return 'Just now'
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`
+
+    return date.toLocaleDateString()
+  }
+
+  const filteredNotifications = notifications.filter(n => filter === 'all' ? true : !n.read_at)
+  const unreadCount = notifications.filter(n => !n.read_at).length
 
   return (
     <div className="max-w-2xl mx-auto py-12 px-4 sm:px-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom duration-500">
@@ -157,10 +128,10 @@ export default function Notifications(): React.JSX.Element {
           <p className="text-sm text-slate-400 mt-1 font-medium">Stay updated with your active community footprint.</p>
         </div>
 
-        {notifications.some(n => !n.isRead) && (
+        {unreadCount > 0 && (
           <button
-            onClick={markAllAsRead}
-            className="text-teal-550 hover:text-teal-600 text-xs font-bold uppercase tracking-wider transition-colors duration-200"
+            onClick={() => markAllNotificationsAsRead().then(fetchNotifications)}
+            className="text-teal-600 hover:text-teal-700 text-xs font-bold uppercase tracking-wider transition-colors duration-200"
           >
             Mark all as read
           </button>
@@ -188,9 +159,9 @@ export default function Notifications(): React.JSX.Element {
           }`}
         >
           <span>Unread</span>
-          {notifications.some(n => !n.isRead) && (
+          {unreadCount > 0 && (
             <span className="px-2 py-0.5 bg-teal-500/10 text-teal-600 text-[10px] font-bold rounded-md">
-              {notifications.filter(n => !n.isRead).length}
+              {unreadCount}
             </span>
           )}
           {filter === 'unread' && (
@@ -200,66 +171,64 @@ export default function Notifications(): React.JSX.Element {
       </div>
 
       {/* ================= NOTIFICATIONS CONTAINER ================= */}
-      <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden min-h-[400px]">
+      <div className="bg-white dark:bg-gray-900 rounded-[24px] border border-slate-100 dark:border-gray-800 shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-10 h-10 text-teal-500 animate-spin mb-4" />
-            <p className="text-slate-500 font-medium">Loading your activity...</p>
+            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Accessing feed...</p>
           </div>
         ) : filteredNotifications.length > 0 ? (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-gray-800">
             {filteredNotifications.map((n) => (
               <div
                 key={n.id}
-                className={`p-5 flex items-start gap-4 transition-all duration-200 hover:bg-slate-50/50 group relative ${
-                  !n.isRead ? 'bg-teal-500/[0.01]' : ''
+                onClick={() => handleNotificationClick(n)}
+                className={`p-5 flex items-start gap-4 transition-all duration-200 hover:bg-slate-50/50 dark:hover:bg-gray-800/30 group relative cursor-pointer ${
+                  !n.read_at ? 'bg-teal-500/[0.01]' : ''
                 }`}
               >
                 {/* Active Indicator Accent Pin */}
-                {!n.isRead && (
+                {!n.read_at && (
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500" />
                 )}
 
                 {/* Avatar / System Icon Block */}
                 <div className="relative shrink-0">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-50 border border-slate-200/60 flex items-center justify-center">
-                    {n.avatar ? (
-                      <img src={n.avatar} alt={n.user} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center font-bold bg-[#0b1329] text-teal-400 text-xs">
-                        DL
+                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-50 dark:bg-gray-800 border border-slate-200/60 dark:border-gray-700 flex items-center justify-center">
+                      <div className="w-full h-full flex items-center justify-center font-bold bg-[#0b1329] text-teal-400 text-xs uppercase">
+                        {n.title.substring(0, 2)}
                       </div>
-                    )}
                   </div>
 
                   {/* Miniature Contextual Bubble Badge */}
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100">
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white dark:bg-gray-900 rounded-lg flex items-center justify-center shadow-sm border border-slate-100 dark:border-gray-800">
                     {getIcon(n.type)}
                   </div>
                 </div>
 
                 {/* Main Dynamic Message Wording */}
                 <div className="flex-grow min-w-0 pt-1">
-                  <p className="text-sm text-slate-700 leading-relaxed">
-                    <span className="font-bold text-slate-900 mr-1">{n.user}</span> {n.content}
+                  <p className="text-sm text-slate-700 dark:text-gray-300 leading-relaxed">
+                    <span className="font-bold text-slate-900 dark:text-white mr-1">{n.title}</span>
+                    {n.message.includes(n.title) ? n.message.replace(n.title, '').trim() : n.message}
                   </p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">{n.time}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">{getTimeAgo(n.created_at)}</p>
                 </div>
 
                 {/* Floating Interactive Inline Controls */}
-                <div className="flex items-center gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                  {!n.isRead && (
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                  {!n.read_at && (
                     <button
-                      onClick={() => markAsRead(n.id)}
-                      className="p-1.5 hover:bg-slate-100 text-slate-400 hover:text-teal-500 rounded-lg transition-colors border border-transparent hover:border-slate-200/40"
+                      onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }}
+                      className="p-1.5 hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-400 hover:text-teal-500 rounded-lg transition-colors border border-transparent hover:border-slate-200/40"
                       title="Mark as read"
                     >
                       <Check size={14} className="stroke-[3]" />
                     </button>
                   )}
                   <button
-                    onClick={() => deleteNotification(n.id)}
-                    className="p-1.5 hover:bg-slate-100 text-slate-400 hover:text-rose-500 rounded-lg transition-colors border border-transparent hover:border-slate-200/40"
+                    onClick={(e) => { e.stopPropagation(); handleDelete(n.id); }}
+                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-400 hover:text-rose-500 rounded-lg transition-colors border border-transparent hover:border-slate-200/40"
                     title="Delete"
                   >
                     <Trash2 size={14} />
@@ -271,10 +240,10 @@ export default function Notifications(): React.JSX.Element {
         ) : (
           /* ================= EMPTY STATE CONTAINER ================= */
           <div className="py-20 text-center">
-            <div className="w-14 h-14 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center mx-auto mb-4 text-slate-300">
+            <div className="w-14 h-14 bg-slate-50 dark:bg-gray-800 border border-slate-100 dark:border-gray-700 rounded-xl flex items-center justify-center mx-auto mb-4 text-slate-300">
               <Bell size={24} />
             </div>
-            <p className="text-base text-slate-900 font-bold">
+            <p className="text-base text-slate-900 dark:text-white font-bold">
               {filter === 'all' ? 'No notifications yet' : 'No unread alerts remaining'}
             </p>
             <p className="text-sm text-slate-500 mt-1 max-w-xs mx-auto font-medium">

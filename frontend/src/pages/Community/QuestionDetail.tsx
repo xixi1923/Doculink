@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { MessageSquare, Eye, Clock, User as UserIcon, ArrowLeft, Send, Loader2 } from 'lucide-react'
+import { MessageSquare, Eye, Clock, User as UserIcon, ArrowLeft, Send, Loader2, MessageCircle, X } from 'lucide-react'
 import api from '@/api/authApi'
 import { useAuthStore } from '@/store/authStore'
+import SendMessageModal from '@/components/SendMessageModal'
 
 export default function QuestionDetail() {
   const { slug } = useParams()
@@ -11,6 +12,7 @@ export default function QuestionDetail() {
   const [loading, setLoading] = useState(true)
   const [answerContent, setAnswerContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [messageRecipient, setMessageRecipient] = useState<{id: number, name: string} | null>(null)
 
   useEffect(() => {
     fetchQuestion()
@@ -68,14 +70,34 @@ export default function QuestionDetail() {
                {question.title}
              </h1>
 
-             <div className="flex items-center gap-4 mb-10 pb-10 border-b border-slate-50 dark:border-gray-800">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                  <UserIcon size={24} className="text-slate-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-black text-slate-900 dark:text-white leading-none mb-1">{question.user?.name}</p>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Question Author</p>
-                </div>
+             <div className="flex items-center justify-between mb-10 pb-10 border-b border-slate-50 dark:border-gray-800">
+                <Link to={question.user?.username ? `/profile/${question.user.username}` : `/user/${question.user?.id}`} className="flex items-center gap-4 group">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-700 group-hover:border-teal-500 transition-all shrink-0">
+                    {question.user?.avatar ? (
+                      <img src={question.user.avatar} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-teal-50 text-teal-600 font-bold">
+                        {question.user?.name?.charAt(0) || 'U'}
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-slate-900 dark:text-white leading-none mb-1 group-hover:text-teal-600 transition-colors truncate">{question.user?.name}</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">
+                      {question.user?.academic_title || 'Question Author'}
+                    </p>
+                  </div>
+                </Link>
+
+                {user?.id !== question.user?.id && (
+                    <button
+                        onClick={() => setMessageRecipient({ id: question.user.id, name: question.user.name })}
+                        className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-teal-600 rounded-2xl transition-all"
+                        title="Send Private Message"
+                    >
+                        <MessageCircle size={20} />
+                    </button>
+                )}
              </div>
 
              <div className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed text-base font-medium">
@@ -98,15 +120,31 @@ export default function QuestionDetail() {
               <div key={ans.id} className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
-                      <UserIcon size={16} className="text-slate-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-black text-slate-900 dark:text-white">{ans.user?.name}</p>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                        {new Date(ans.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
+                      <Link to={ans.user?.username ? `/profile/${ans.user.username}` : `/user/${ans.user?.id}`} className="flex items-center gap-3 group">
+                        <div className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-700 group-hover:border-teal-500 transition-all shrink-0">
+                          {ans.user?.avatar ? (
+                            <img src={ans.user.avatar} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-teal-50 text-teal-600 text-[10px] font-bold">
+                              {ans.user?.name?.charAt(0) || 'U'}
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-slate-900 dark:text-white group-hover:text-teal-600 transition-colors truncate">{ans.user?.name}</p>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest truncate">
+                            {ans.user?.affiliation || 'Academic Contributor'}
+                          </p>
+                        </div>
+                      </Link>
+                      {user?.id !== ans.user?.id && (
+                        <button
+                            onClick={() => setMessageRecipient({ id: ans.user.id, name: ans.user.name })}
+                            className="text-slate-400 hover:text-teal-600 transition-colors"
+                        >
+                            <MessageCircle size={14} />
+                        </button>
+                      )}
                   </div>
                 </div>
                 <div className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed whitespace-pre-wrap font-medium">
@@ -148,6 +186,12 @@ export default function QuestionDetail() {
           )}
         </section>
       </div>
+      <SendMessageModal
+        isOpen={!!messageRecipient}
+        onClose={() => setMessageRecipient(null)}
+        recipientId={messageRecipient?.id || ''}
+        recipientName={messageRecipient?.name || ''}
+      />
     </div>
   )
 }

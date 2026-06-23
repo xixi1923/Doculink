@@ -12,9 +12,15 @@ class NotificationController extends Controller
     {
         $notifications = Auth::user()->notifications()
             ->orderBy('created_at', 'desc')
-            ->paginate(15);
+            ->get(); // Get all for now to easily categorize in frontend
 
         return response()->json($notifications);
+    }
+
+    public function unreadCount()
+    {
+        $count = Auth::user()->notifications()->whereNull('read_at')->count();
+        return response()->json(['count' => $count]);
     }
 
     public function markAsRead(Request $request, $id)

@@ -5,6 +5,7 @@ import {
   Download,
   Eye,
   MessageSquare,
+  ThumbsUp,
   Share2,
   Bookmark,
   ChevronLeft,
@@ -15,10 +16,13 @@ import {
   User as UserIcon,
   Send,
   Loader2,
-  MoreVertical
+  MoreVertical,
+  MessageCircle
 } from 'lucide-react'
-import api, { toggleFavoriteApi } from '@/api/authApi'
+import api, { toggleFavoriteApi, toggleDocumentLikeApi } from '@/api/authApi'
 import { useAuthStore } from '@/store/authStore'
+import CommentSection from '@/components/CommentSection'
+import SendMessageModal from '@/components/SendMessageModal'
 
 export default function DocumentDetail(): React.JSX.Element {
   const { id } = useParams()
@@ -28,6 +32,9 @@ export default function DocumentDetail(): React.JSX.Element {
   const [newComment, setNewComment] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
   const [isFavorited, setIsFavorited] = useState(false)
+  const [isLiked, setIsLiked] = useState(false)
+  const [likesCount, setLikesCount] = useState(0)
+  const [isMessageModalOpen, setIsMessageModalOpen] = useState(false)
 
   useEffect(() => {
     fetchDocument()
@@ -39,10 +46,24 @@ export default function DocumentDetail(): React.JSX.Element {
       const res = await api.get(`/documents/${id}`)
       setDoc(res.data)
       setIsFavorited(res.data.is_favorited)
+      setIsLiked(res.data.is_liked)
+      setLikesCount(res.data.likes_count || 0)
     } catch (err) {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleLike = async () => {
+    if (!token) return alert('Please login to like.')
+    try {
+      const res = await toggleDocumentLikeApi(Number(id))
+      setIsLiked(res.liked)
+      setLikesCount(prev => res.liked ? prev + 1 : prev - 1)
+    } catch (err: any) {
+      console.error(err)
+      alert('Failed to like document: ' + (err.response?.data?.message || 'Server error'))
     }
   }
 
@@ -51,8 +72,9 @@ export default function DocumentDetail(): React.JSX.Element {
     try {
       const res = await toggleFavoriteApi({ document_id: Number(id) })
       setIsFavorited(res.favorited)
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
+      alert('Failed to save document: ' + (err.response?.data?.message || 'Server error'))
     }
   }
 
@@ -65,11 +87,13 @@ export default function DocumentDetail(): React.JSX.Element {
       const res = await api.post(`/documents/${id}/comment`, { content: newComment })
       setDoc({
         ...doc,
-        comments: [res.data, ...(doc.comments || [])]
+        comments: [res.data, ...(doc.comments || [])],
+        comments_count: (doc.comments_count || 0) + 1
       })
       setNewComment('')
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
+      alert('Failed to post comment: ' + (err.response?.data?.message || 'Server error'))
     } finally {
       setSubmittingComment(false)
     }
@@ -133,6 +157,13 @@ export default function DocumentDetail(): React.JSX.Element {
 
             <div className="flex flex-wrap items-center justify-between gap-6 pt-8 border-t border-slate-100">
               <div className="flex items-center gap-4">
+                <button
+                  onClick={handleLike}
+                  className={`flex items-center gap-1.5 text-xs font-bold transition-all px-4 py-2 rounded-xl ${isLiked ? 'bg-teal-50 text-teal-600 border border-teal-200 shadow-sm shadow-teal-500/10' : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'}`}
+                >
+                  <ThumbsUp size={16} className={isLiked ? 'fill-current' : ''} />
+                  {isLiked ? 'Liked' : 'Like'} {likesCount > 0 && <span className="ml-1 opacity-60">{likesCount}</span>}
+                </button>
                 <button
                   onClick={handleFavorite}
                   className={`flex items-center gap-1.5 text-xs font-bold transition-all px-4 py-2 rounded-xl ${isFavorited ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'}`}
@@ -211,32 +242,7 @@ export default function DocumentDetail(): React.JSX.Element {
             )}
 
             {/* Comments List */}
-            <div className="space-y-4">
-              {doc.comments?.map((comment: any) => (
-                <div key={comment.id} className="bg-white p-6 rounded-[28px] border border-slate-200 shadow-sm flex gap-4 items-start group">
-                  <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
-                    {comment.user?.avatar ? (
-                      <img src={comment.user.avatar} className="w-full h-full rounded-2xl object-cover" />
-                    ) : (
-                      <UserIcon size={18} />
-                    )}
-                  </div>
-                  <div className="flex-grow">
-                    <div className="flex justify-between items-center mb-2">
-                       <div>
-                         <h4 className="font-bold text-sm text-slate-900">{comment.user?.name}</h4>
-                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Contributor</p>
-                       </div>
-                       <span className="text-[10px] text-slate-400">{new Date(comment.created_at).toLocaleDateString()}</span>
-                    </div>
-                    <p className="text-sm text-slate-800 leading-relaxed font-medium">
-                      {comment.content}
-                    </p>
-                  </div>
-                  <button className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical size={16} /></button>
-                </div>
-              ))}
-            </div>
+            <CommentSection comments={doc.comments || []} onUpdate={fetchDocument} />
           </div>
         </div>
 
@@ -245,14 +251,34 @@ export default function DocumentDetail(): React.JSX.Element {
 
           {/* Uploader Card */}
           <div className="bg-white rounded-[32px] border border-slate-200 p-8 shadow-sm">
-             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6">Original Uploader</h3>
-             <Link to="/profile" className="flex items-center gap-4 group">
-               <div className="w-14 h-14 rounded-[20px] bg-slate-100 flex items-center justify-center text-teal-600 font-black text-xl group-hover:scale-105 transition-transform duration-300 overflow-hidden">
-                 {doc.user?.avatar ? <img src={doc.user.avatar} className="w-full h-full object-cover" /> : doc.user?.name?.charAt(0) || 'U'}
+             <div className="flex items-center justify-between mb-6">
+                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Original Uploader</h3>
+                {user?.id !== doc.user?.id && (
+                    <button
+                        onClick={() => setIsMessageModalOpen(true)}
+                        className="text-slate-400 hover:text-teal-600 transition-colors"
+                        title="Send Message"
+                    >
+                        <MessageCircle size={18} />
+                    </button>
+                )}
+             </div>
+             <Link to={doc.user?.username ? `/profile/${doc.user.username}` : `/user/${doc.user?.id}`} className="flex items-center gap-4 group">
+               <div className="w-14 h-14 rounded-[20px] bg-slate-50 dark:bg-gray-800 flex items-center justify-center text-teal-600 font-black text-xl group-hover:scale-105 transition-transform duration-300 overflow-hidden shrink-0 border border-slate-100 dark:border-gray-700">
+                 {doc.user?.avatar ? (
+                    <img src={doc.user.avatar} className="w-full h-full object-cover" />
+                 ) : (
+                    <span className="uppercase">{doc.user?.name ? doc.user.name.split(' ').map((n: any) => n[0]).join('').substring(0, 2) : 'U'}</span>
+                 )}
                </div>
-               <div>
-                 <h4 className="font-bold text-slate-900 group-hover:text-teal-600 transition-colors">{doc.user?.name || 'Verified User'}</h4>
-                 <p className="text-[11px] text-slate-500 font-medium">Joined {new Date(doc.user?.created_at).getFullYear()}</p>
+               <div className="min-w-0">
+                 <h4 className="font-bold text-slate-900 group-hover:text-teal-600 transition-colors truncate">{doc.user?.name || 'Verified User'}</h4>
+                 <p className="text-[11px] text-slate-500 font-medium truncate">
+                   {doc.user?.academic_title || 'Scholar'}
+                 </p>
+                 <p className="text-[10px] text-teal-600 font-bold truncate">
+                   {doc.user?.affiliation || doc.user?.university?.name || 'Academic Member'}
+                 </p>
                </div>
              </Link>
              <div className="grid grid-cols-1 gap-4 mt-8">
@@ -302,6 +328,14 @@ export default function DocumentDetail(): React.JSX.Element {
 
         </div>
       </div>
+      {doc.user && (
+          <SendMessageModal
+            isOpen={isMessageModalOpen}
+            onClose={() => setIsMessageModalOpen(false)}
+            recipientId={doc.user.id}
+            recipientName={doc.user.name}
+          />
+      )}
     </div>
   )
 }

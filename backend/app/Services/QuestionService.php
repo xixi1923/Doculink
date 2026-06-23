@@ -21,7 +21,15 @@ class QuestionService
     public function getQuestionWithAnswers($slug)
     {
         return \App\Models\Question::where('slug', $slug)
-            ->with(['user', 'category', 'answers.user'])
+            ->with([
+                'user' => function($q) {
+                    $q->withCount('documents');
+                },
+                'category',
+                'answers.user' => function($q) {
+                    $q->withCount('documents');
+                }
+            ])
             ->firstOrFail();
     }
 

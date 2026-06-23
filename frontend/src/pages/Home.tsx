@@ -206,12 +206,12 @@ export default function Home(): React.JSX.Element {
               ))
             ) : (
               documents.slice(0, 4).map((doc) => (
-                <Link to={`/documents/${doc.id}`} key={doc.id} className="group flex">
+                <div key={doc.id} className="group flex">
                   <div className="bg-white rounded-[24px] overflow-hidden border border-slate-200 flex flex-col w-full hover:shadow-xl hover:border-teal-500/20 hover:-translate-y-1 transition-all duration-300 min-h-[400px]">
 
                     {/* Aspect Document Face Frame */}
                     <div className="relative aspect-[4/3] overflow-hidden bg-slate-50">
-                      <img src={getDocumentImage(doc.id)} alt={doc.title} className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700" />
+                      <img src={getDocumentImage(doc.id)} alt={doc.title} className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700" crossOrigin="anonymous" />
                       <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-2.5 py-0.5 rounded-md text-[10px] font-bold text-teal-700 uppercase tracking-wider shadow-sm border border-slate-100">
                         {doc.category?.name || 'Document'}
                       </div>
@@ -223,17 +223,19 @@ export default function Home(): React.JSX.Element {
 
                     {/* Body Copy Blocks */}
                     <div className="p-5 flex flex-col flex-grow justify-between">
-                      <h3 className="font-bold text-lg text-slate-900 line-clamp-2 leading-tight group-hover:text-teal-600 transition-colors">
-                        {doc.title}
-                      </h3>
+                      <Link to={`/documents/${doc.id}`}>
+                        <h3 className="font-bold text-lg text-slate-900 line-clamp-2 leading-tight group-hover:text-teal-600 transition-colors">
+                          {doc.title}
+                        </h3>
+                      </Link>
 
                       <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-4">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <div className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-[11px] font-bold text-slate-700 shrink-0">
-                             {doc.user?.name?.charAt(0) || 'U'}
+                        <Link to={doc.user?.username ? `/profile/${doc.user.username}` : `/user/${doc.user?.id}`} className="flex items-center gap-1.5 min-w-0 group/user">
+                          <div className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-[11px] font-bold text-slate-700 shrink-0 group-hover/user:bg-teal-500 group-hover/user:text-white transition-all overflow-hidden">
+                             {doc.user?.avatar ? <img src={doc.user.avatar} className="w-full h-full object-cover" crossOrigin="anonymous" /> : doc.user?.name?.charAt(0) || 'U'}
                           </div>
-                          <span className="text-xs font-bold text-slate-700 truncate">{doc.user?.name || 'Anonymous'}</span>
-                        </div>
+                          <span className="text-xs font-bold text-slate-700 truncate group-hover/user:text-teal-600 transition-colors">{doc.user?.name || 'Anonymous'}</span>
+                        </Link>
                         <div className="flex items-center gap-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide shrink-0">
                           <span className="flex items-center gap-0.5"><Eye size={12} /> {formatNumber(doc.views_count)}</span>
                           <span className="flex items-center gap-0.5"><FileText size={12} /> {doc.file_type?.toUpperCase()}</span>
@@ -241,7 +243,7 @@ export default function Home(): React.JSX.Element {
                       </div>
                     </div>
                   </div>
-                </Link>
+                </div>
               ))
             )}
           </div>

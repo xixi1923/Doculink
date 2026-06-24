@@ -69,8 +69,7 @@ return [
             'endpoint' => env('CLOUDFLARE_R2_ENDPOINT'),
             'url' => env('CLOUDFLARE_R2_PUBLIC_URL'),
             'use_path_style_endpoint' => true,
-            'throw' => false,
-            'report' => false,
+            'throw' => true,
         ],
 
     ],

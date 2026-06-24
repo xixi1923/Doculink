@@ -36,16 +36,14 @@ class BookService
     {
         if ($file) {
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $path = 'books/' . $filename;
-            Storage::disk('r2')->put($path, file_get_contents($file));
-            $data['file_path'] = rtrim(config('filesystems.disks.r2.url'), '/') . '/' . $path;
+            $path = $file->storeAs('books', $filename, 'r2');
+            $data['file_path'] = Storage::disk('r2')->url($path);
         }
 
         if ($cover) {
             $covername = time() . '_cover_' . uniqid() . '.' . $cover->getClientOriginalExtension();
-            $coverPath = 'covers/' . $covername;
-            Storage::disk('r2')->put($coverPath, file_get_contents($cover));
-            $data['cover_image'] = rtrim(config('filesystems.disks.r2.url'), '/') . '/' . $coverPath;
+            $coverPath = $cover->storeAs('covers', $covername, 'r2');
+            $data['cover_image'] = Storage::disk('r2')->url($coverPath);
         }
 
         return $this->bookRepository->create($data);

@@ -127,6 +127,11 @@ export const toggleFavoriteApi = async (data: { document_id?: number, book_id?: 
   return response.data
 }
 
+export const toggleLikeApi = async (data: { document_id?: number, book_id?: number }) => {
+  const response = await api.post('/likes/toggle', data)
+  return response.data
+}
+
 export const getUniversities = async () => {
   const response = await api.get('/universities')
   return response.data

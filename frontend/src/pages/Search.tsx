@@ -11,6 +11,7 @@ import {
   Filter,
   Heart,
   MessageSquare,
+  Bookmark,
   MoreHorizontal,
   GraduationCap,
   Calendar,
@@ -247,17 +248,17 @@ export default function Search() {
                         </Link>
 
                         <div className="flex items-center gap-6 text-slate-400">
-                             <div className="flex items-center gap-1.5">
-                                <Heart size={16} className="opacity-40" />
-                                <span className="text-[11px] font-bold">{item.favorites_count || 0}</span>
+                             <div className="flex items-center gap-1.5" title="Likes">
+                                <Heart size={15} className={`opacity-60 ${(item.likes_count > 0) ? 'fill-rose-500 text-rose-500 opacity-100' : ''}`} />
+                                <span className="text-[11px] font-bold text-slate-700">{item.likes_count || 0}</span>
                              </div>
-                             <div className="flex items-center gap-1.5">
-                                <MessageSquare size={16} className="opacity-40" />
-                                <span className="text-[11px] font-bold">{item.comments_count || 0}</span>
+                             <div className="flex items-center gap-1.5" title="Comments">
+                                <MessageSquare size={15} className="opacity-60" />
+                                <span className="text-[11px] font-bold text-slate-700">{item.comments_count || 0}</span>
                              </div>
-                             <div className="flex items-center gap-1.5">
-                                <Eye size={16} className="opacity-40" />
-                                <span className="text-[11px] font-bold">{(item.view_count || item.views_count || 0) > 1000 ? ((item.view_count || item.views_count || 0) / 1000).toFixed(1) + 'k' : (item.view_count || item.views_count || 0)}</span>
+                             <div className="flex items-center gap-1.5" title="Downloads">
+                                <Download size={15} className="opacity-60" />
+                                <span className="text-[11px] font-bold text-slate-700">{item.download_count || item.downloads_count || 0}</span>
                              </div>
                         </div>
                     </div>
@@ -276,3 +277,5 @@ export default function Search() {
     </div>
   )
 }
+
+// DOCULINK REPOSITORY EXPLORER

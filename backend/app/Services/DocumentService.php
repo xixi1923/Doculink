@@ -41,12 +41,20 @@ class DocumentService
                 $q->where('user_id', $userId);
             }]);
 
+            $query->withExists(['likes as is_liked' => function($q) use ($userId) {
+                $q->where('user_id', $userId);
+            }]);
+
             // Load user with follow status
             $query->with(['user' => function($q) use ($userId) {
                 $q->withExists(['followers as is_following' => function($f) use ($userId) {
                     $f->where('follower_id', $userId);
                 }]);
             }]);
+        }
+
+        if (isset($filters['limit'])) {
+            $query->limit((int)$filters['limit']);
         }
 
         return $query->withCount(['comments', 'favorites'])
@@ -62,11 +70,11 @@ class DocumentService
     public function uploadDocument(array $data, $file)
     {
         $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-        $path = 'documents/' . $filename;
 
-        Storage::disk('r2')->put($path, file_get_contents($file));
+        // Use putFileAs to ensure the filename is exactly what we want, not a subfolder
+        Storage::disk('r2')->putFileAs('documents', $file, $filename);
 
-        $publicUrl = rtrim(config('filesystems.disks.r2.url'), '/') . '/' . $path;
+        $publicUrl = rtrim(config('filesystems.disks.r2.url'), '/') . '/documents/' . $filename;
 
         $data['file_path'] = $publicUrl;
         $data['file_type'] = $file->getClientOriginalExtension();
@@ -77,70 +85,57 @@ class DocumentService
 
     public function getDocumentDetails($id)
     {
-        $userId = Auth::id();
-        $query = \App\Models\Document::with([
-            'user' => function($q) {
-                $q->withCount('documents');
-            },
-            'category',
-            'university',
-            'comments' => function($q) use ($userId) {
-                $q->with(['user']);
-                $q->withCount('likes');
-                if ($userId) {
-                    $q->withExists(['likes as is_liked' => function($l) use ($userId) {
-                        $l->where('user_id', $userId);
-                    }]);
-                }
-            },
-            'comments.replies' => function($q) use ($userId) {
-                $q->with(['user']);
-                $q->withCount('likes');
-                if ($userId) {
-                    $q->withExists(['likes as is_liked' => function($l) use ($userId) {
-                        $l->where('user_id', $userId);
-                    }]);
-                }
-            }
-        ])->withCount(['likes', 'comments', 'favorites']);
+        $document = $this->documentRepository->findById($id, ['*'], ['user', 'category', 'university', 'comments.user']);
 
-        if ($userId) {
-            $query->withExists(['likes as is_liked' => function($q) use ($userId) {
+        if (Auth::check()) {
+            $userId = Auth::id();
+            $document->loadExists(['favorites as is_favorited' => function ($q) use ($userId) {
                 $q->where('user_id', $userId);
             }]);
-            $query->withExists(['favorites as is_favorited' => function($q) use ($userId) {
+            $document->loadExists(['likes as is_liked' => function ($q) use ($userId) {
                 $q->where('user_id', $userId);
             }]);
         }
 
-        return $query->findOrFail($id);
+        $document->loadCount(['comments', 'favorites', 'likes']);
+
+        // Load related documents: same category, excluding self
+        $document->related_documents = \App\Models\Document::where('category_id', $document->category_id)
+            ->where('id', '!=', $id)
+            ->where('status', 'approved')
+            ->limit(5)
+            ->get();
+
+        return $document;
     }
 
-    public function getTrendingDocuments($limit = 10)
+    public function getTrendingDocuments()
     {
-        $query = \App\Models\Document::with(['user', 'category', 'university']);
+        $query = \App\Models\Document::with(['user', 'category', 'university'])
+            ->where('status', 'approved')
+            ->withCount(['comments', 'favorites']);
 
         if (Auth::check()) {
             $userId = Auth::id();
-            $query->withExists(['likes as is_liked' => function($q) use ($userId) {
-                $q->where('user_id', $userId);
-            }]);
-            $query->withExists(['favorites as is_favorited' => function($q) use ($userId) {
+            $query->withExists(['favorites as is_favorited' => function ($q) use ($userId) {
                 $q->where('user_id', $userId);
             }]);
 
-            // Load user with follow status
-            $query->with(['user' => function($q) use ($userId) {
-                $q->withExists(['followers as is_following' => function($f) use ($userId) {
+            $query->withExists(['likes as is_liked' => function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            }]);
+
+            $query->with(['user' => function ($q) use ($userId) {
+                $q->withExists(['followers as is_following' => function ($f) use ($userId) {
                     $f->where('follower_id', $userId);
                 }]);
             }]);
         }
 
-        return $query->withCount(['comments', 'likes', 'favorites'])
-            ->orderBy('view_count', 'desc')
-            ->orderBy('likes_count', 'desc')
-            ->limit($limit)
+        return $query->orderByDesc('view_count')
+            ->orderByDesc('download_count')
+            ->orderByDesc('created_at')
+            ->limit(10)
             ->get();
     }
 

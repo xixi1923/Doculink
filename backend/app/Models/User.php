@@ -77,16 +77,6 @@ class User extends Authenticatable
         return $this->hasMany(Favorite::class);
     }
 
-    public function followers()
-    {
-        return $this->hasMany(Follow::class, 'following_id');
-    }
-
-    public function followings()
-    {
-        return $this->hasMany(Follow::class, 'follower_id');
-    }
-
     public function downloadLogs()
     {
         return $this->hasMany(DownloadLog::class);
@@ -100,6 +90,16 @@ class User extends Authenticatable
     public function likes()
     {
         return $this->hasMany(Like::class);
+    }
+
+    public function followers()
+    {
+        return $this->belongsToMany(User::class, 'follows', 'following_id', 'follower_id');
+    }
+
+    public function followings()
+    {
+        return $this->belongsToMany(User::class, 'follows', 'follower_id', 'following_id');
     }
 
     /**

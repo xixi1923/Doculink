@@ -11,28 +11,41 @@ use Illuminate\Support\Facades\Auth;
 
 class LikeController extends Controller
 {
-    public function toggleLike(Request $request)
-    {
-        try {
-            $request->validate([
-                'likeable_id' => 'required|integer',
-                'likeable_type' => 'required|string|in:document,comment',
-            ]);
-
-            $userId = Auth::id();
-            $type = $request->likeable_type === 'document' ? Document::class : Comment::class;
-            $likeableId = $request->likeable_id;
-
-            return $this->handleToggleLike($type, $likeableId, $request->likeable_type);
-        } catch (\Exception $e) {
-            return response()->json(['message' => $e->getMessage()], 500);
-        }
-    }
-
     public function toggleLikeDocument($id)
     {
         try {
-            return $this->handleToggleLike(Document::class, $id, 'document');
+            $userId = Auth::id();
+            $document = Document::findOrFail($id);
+
+            $like = Like::where('user_id', $userId)
+                ->where('document_id', $id)
+                ->first();
+
+            if ($like) {
+                $like->delete();
+                $document->decrement('likes_count');
+                return response()->json(['liked' => false, 'likes_count' => $document->likes_count]);
+            } else {
+                Like::create([
+                    'user_id' => $userId,
+                    'document_id' => $id,
+                ]);
+                $document->increment('likes_count');
+
+                // Notification
+                if ($document->user_id && $document->user_id !== $userId) {
+                    Notification::create([
+                        'user_id' => $document->user_id,
+                        'type' => 'document_like',
+                        'title' => 'Document Liked',
+                        'message' => Auth::user()->name . ' liked your paper.',
+                        'related_id' => $id,
+                        'related_type' => 'document'
+                    ]);
+                }
+
+                return response()->json(['liked' => true, 'likes_count' => $document->likes_count]);
+            }
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 500);
         }
@@ -41,50 +54,18 @@ class LikeController extends Controller
     public function toggleLikeComment($id)
     {
         try {
-            return $this->handleToggleLike(Comment::class, $id, 'comment');
+            $userId = Auth::id();
+            $comment = Comment::findOrFail($id);
+
+            // Assuming comments might use polymorphic likes or have their own logic
+            // But based on user's current structure, comments don't seem to have a likes_count column
+            // and I don't see a comments_id in likes table listing.
+            // If they want to like comments, they might need a different table or polymorphic.
+            // For now, let's keep it simple or stick to what's supported.
+
+            return response()->json(['message' => 'Comment liking not implemented in this table structure'], 400);
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 500);
-        }
-    }
-
-    private function handleToggleLike($type, $id, $typeStringShort)
-    {
-        $userId = Auth::id();
-        $likeable = $type::findOrFail($id);
-
-        $like = Like::where('user_id', $userId)
-            ->where('likeable_id', $id)
-            ->where('likeable_type', $type)
-            ->first();
-
-        if ($like) {
-            $like->delete();
-            return response()->json(['liked' => false]);
-        } else {
-            Like::create([
-                'user_id' => $userId,
-                'likeable_id' => $id,
-                'likeable_type' => $type,
-            ]);
-
-            // Notification
-            $ownerId = $likeable->user_id;
-            if ($ownerId !== $userId) {
-                $typeString = $typeStringShort === 'document' ? 'document_like' : 'comment_like';
-                $title = $typeStringShort === 'document' ? 'Document Liked' : 'Comment Liked';
-                $message = Auth::user()->name . ($typeStringShort === 'document' ? ' liked your paper.' : ' liked your comment.');
-
-                Notification::create([
-                    'user_id' => $ownerId,
-                    'type' => $typeString,
-                    'title' => $title,
-                    'message' => $message,
-                    'related_id' => $typeStringShort === 'document' ? $id : $likeable->commentable_id,
-                    'related_type' => 'document'
-                ]);
-            }
-
-            return response()->json(['liked' => true]);
         }
     }
 }

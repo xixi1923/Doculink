@@ -31,10 +31,11 @@ class DocumentController extends Controller
             'title' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'university_id' => 'nullable|exists:universities,id',
+            'resource_level' => 'nullable|string|max:255',
             'file' => 'required|file|mimes:pdf,docx,pptx,jpg,jpeg,png|max:51200',
         ]);
 
-        $data = $request->only(['title', 'description', 'subject', 'course_code', 'category_id', 'university_id', 'tags']);
+        $data = $request->only(['title', 'description', 'subject', 'category_id', 'university_id', 'resource_level', 'tags']);
         $data['user_id'] = Auth::id();
         $data['status'] = 'pending';
 
@@ -49,7 +50,25 @@ class DocumentController extends Controller
             $document = $this->documentService->getDocumentDetails($id);
             $document->increment('view_count');
 
-            // If user is logged in, we already loaded is_favorited and is_liked via withExists in the service
+            // Load uploader stats to make the sidebar dynamic
+            $user = $document->user;
+            if ($user) {
+                $totalUploads = $user->documents()->count() + $user->books()->count();
+                $totalDownloads = $user->documents()->sum('download_count');
+                $totalViews = $user->documents()->sum('view_count');
+                $totalLikes = \App\Models\Like::whereIn('document_id', $user->documents()->pluck('id'))->count();
+                $totalComments = \App\Models\Comment::whereIn('commentable_id', $user->documents()->pluck('id'))
+                    ->where('commentable_type', 'App\Models\Document')
+                    ->count();
+
+                $user->stats = [
+                    'total_uploads' => $totalUploads,
+                    'total_downloads' => (int) $totalDownloads,
+                    'total_views' => (int) $totalViews,
+                    'total_likes' => (int) $totalLikes,
+                    'total_comments' => (int) $totalComments,
+                ];
+            }
 
             return response()->json($document);
         } catch (\Exception $e) {

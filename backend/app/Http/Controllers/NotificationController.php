@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class NotificationController extends Controller
 {
@@ -19,8 +20,15 @@ class NotificationController extends Controller
 
     public function unreadCount()
     {
-        $count = Auth::user()->notifications()->whereNull('read_at')->count();
-        return response()->json(['count' => $count]);
+        $query = Auth::user()->notifications();
+
+        if (Schema::hasColumn('notifications', 'is_read')) {
+            $query->where('is_read', false);
+        } else {
+            $query->whereNull('read_at');
+        }
+
+        return response()->json(['count' => $query->count()]);
     }
 
     public function markAsRead(Request $request, $id)
@@ -39,9 +47,13 @@ class NotificationController extends Controller
 
     public function markAllAsRead(Request $request)
     {
-        Auth::user()->notifications()
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
+        $query = Auth::user()->notifications();
+
+        if (Schema::hasColumn('notifications', 'is_read')) {
+            $query->where('is_read', false)->update(['is_read' => true]);
+        } else {
+            $query->whereNull('read_at')->update(['read_at' => now()]);
+        }
 
         return response()->json(['message' => 'All notifications marked as read']);
     }

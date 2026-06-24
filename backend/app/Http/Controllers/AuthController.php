@@ -73,9 +73,9 @@ class AuthController extends Controller
             'followings'
         ])->findOrFail($id);
 
-        $totalDownloads = $user->documents()->sum('download_count');
-        $totalViews = $user->documents()->sum('view_count');
-        $totalLikes = $user->documents()->withCount('likes')->get()->sum('likes_count');
+        $totalDownloads = $user->documents->sum('download_count');
+        $totalViews = $user->documents->sum('view_count');
+        $totalLikes = $user->documents->sum('likes_count');
 
         $isFollowing = false;
         if (Auth::check()) {
@@ -87,12 +87,12 @@ class AuthController extends Controller
         return response()->json([
             'user' => $user,
             'stats' => [
-                'total_uploads' => $user->documents()->count() + $user->books()->count(),
-                'total_downloads' => $totalDownloads,
-                'total_views' => $totalViews,
-                'total_likes' => $totalLikes,
-                'followers_count' => $user->followers()->count(),
-                'following_count' => $user->followings()->count(),
+                'total_uploads' => $user->documents->count() + $user->books->count(),
+                'total_downloads' => (int) $totalDownloads,
+                'total_views' => (int) $totalViews,
+                'total_likes' => (int) $totalLikes,
+                'followers_count' => $user->followers->count(),
+                'following_count' => $user->followings->count(),
                 'is_following' => $isFollowing
             ]
         ]);
@@ -105,6 +105,9 @@ class AuthController extends Controller
                 $q->withCount(['comments', 'likes']);
             },
             'books',
+            'favorites' => function($q) {
+                $q->orderBy('created_at', 'desc');
+            },
             'favorites.document.user',
             'favorites.book',
             'university',
@@ -112,19 +115,19 @@ class AuthController extends Controller
             'followings'
         ]);
 
-        $totalDownloads = $user->documents()->sum('download_count');
-        $totalViews = $user->documents()->sum('view_count');
-        $totalLikes = $user->documents()->withCount('likes')->get()->sum('likes_count');
+        $totalDownloads = $user->documents->sum('download_count');
+        $totalViews = $user->documents->sum('view_count');
+        $totalLikes = $user->documents->sum('likes_count');
 
         return response()->json([
             'user' => $user,
             'stats' => [
-                'total_uploads' => $user->documents()->count() + $user->books()->count(),
-                'total_downloads' => $totalDownloads,
-                'total_views' => $totalViews,
-                'total_likes' => $totalLikes,
-                'followers_count' => $user->followers()->count(),
-                'following_count' => $user->followings()->count(),
+                'total_uploads' => $user->documents->count() + $user->books->count(),
+                'total_downloads' => (int) $totalDownloads,
+                'total_views' => (int) $totalViews,
+                'total_likes' => (int) $totalLikes,
+                'followers_count' => $user->followers->count(),
+                'following_count' => $user->followings->count(),
             ]
         ]);
     }
@@ -187,19 +190,17 @@ class AuthController extends Controller
     {
         $user = User::with([
             'documents' => function($q) {
-                $q->withCount(['comments', 'likes'])->where('status', 'published');
+                $q->withCount(['comments', 'likes'])->where('status', 'approved');
             },
-            'books' => function($q) {
-                $q->where('status', 'published');
-            },
+            'books',
             'university',
             'followers',
             'followings'
         ])->where('username', $username)->firstOrFail();
 
-        $totalDownloads = $user->documents()->sum('download_count');
-        $totalViews = $user->documents()->sum('view_count');
-        $totalLikes = $user->documents()->withCount('likes')->get()->sum('likes_count');
+        $totalDownloads = $user->documents->sum('download_count');
+        $totalViews = $user->documents->sum('view_count');
+        $totalLikes = $user->documents->sum('likes_count');
 
         $isFollowing = false;
         if (Auth::check()) {
@@ -211,12 +212,12 @@ class AuthController extends Controller
         return response()->json([
             'user' => $user,
             'stats' => [
-                'total_uploads' => $user->documents()->count() + $user->books()->count(),
-                'total_downloads' => $totalDownloads,
-                'total_views' => $totalViews,
-                'total_likes' => $totalLikes,
-                'followers_count' => $user->followers()->count(),
-                'following_count' => $user->followings()->count(),
+                'total_uploads' => $user->documents->count() + $user->books->count(),
+                'total_downloads' => (int) $totalDownloads,
+                'total_views' => (int) $totalViews,
+                'total_likes' => (int) $totalLikes,
+                'followers_count' => $user->followers->count(),
+                'following_count' => $user->followings->count(),
                 'is_following' => $isFollowing
             ]
         ]);

@@ -11,6 +11,7 @@ use App\Http\Controllers\SocialController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -38,6 +39,7 @@ Route::get('/documents', [DocumentController::class, 'index']);
 Route::get('/documents/trending', [DocumentController::class, 'trending']);
 Route::get('/documents/{id}', [DocumentController::class, 'show']);
 Route::get('/stats/home', [StatsController::class, 'homeStats']);
+Route::get('/stats/top-contributors', [StatsController::class, 'getTopContributors']);
 Route::get('/community/questions', [CommunityController::class, 'index']);
 Route::get('/community/questions/{slug}', [CommunityController::class, 'showQuestion']);
 Route::get('/tags', [TagController::class, 'index']);
@@ -60,42 +62,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
 
-    // Social / Favorites
+    // Social / Favorites / Likes
     Route::post('/favorites/toggle', [SocialController::class, 'toggleFavorite']);
-    Route::post('/follow/toggle', [SocialController::class, 'toggleFollow']);
+    Route::post('/likes/toggle', [SocialController::class, 'toggleLike']);
+    Route::get('/users/{id}/relationship-status', [SocialController::class, 'getRelationshipStatus']);
     Route::post('/users/{id}/follow', [SocialController::class, 'follow']);
     Route::delete('/users/{id}/follow', [SocialController::class, 'unfollow']);
-    Route::get('/users/{id}/relationship-status', [SocialController::class, 'getRelationshipStatus']);
-    Route::post('/likes/toggle', [LikeController::class, 'toggleLike']);
-    Route::post('/documents/{id}/like', [LikeController::class, 'toggleLikeDocument']);
-    Route::post('/documents/{id}/save', [SocialController::class, 'saveDocument']);
-
-    // Messages
-    Route::get('/messages/conversations', [\App\Http\Controllers\MessageController::class, 'getConversations']);
-    Route::get('/messages/users/search', [\App\Http\Controllers\MessageController::class, 'searchUsers']);
-    Route::post('/messages/start', [\App\Http\Controllers\MessageController::class, 'startConversation']);
-    Route::get('/messages/unread-count', [\App\Http\Controllers\MessageController::class, 'unreadCount']);
-    Route::post('/messages/{conversationId}/send', [\App\Http\Controllers\MessageController::class, 'sendMessageWithAttachments']);
-    Route::post('/messages/send', [\App\Http\Controllers\MessageController::class, 'sendMessage']);
-    Route::get('/messages/{conversationId}', [\App\Http\Controllers\MessageController::class, 'getMessages']);
-    Route::get('/messages/attachments/{attachmentId}/download', [\App\Http\Controllers\MessageController::class, 'downloadAttachment']);
-    Route::put('/messages/read', [\App\Http\Controllers\MessageController::class, 'markAsRead']);
-    Route::delete('/messages/{conversationId}/delete', [\App\Http\Controllers\MessageController::class, 'deleteConversation']);
-    Route::post('/messages/{conversationId}/end', [\App\Http\Controllers\MessageController::class, 'endConversation']);
-    Route::post('/messages/{conversationId}/reopen', [\App\Http\Controllers\MessageController::class, 'reopenConversation']);
-
-    // User blocking
-    Route::post('/users/block', [\App\Http\Controllers\MessageController::class, 'blockUser']);
-    Route::post('/users/{userId}/unblock', [\App\Http\Controllers\MessageController::class, 'unblockUser']);
-    Route::get('/users/blocked', [\App\Http\Controllers\MessageController::class, 'getBlockedUsers']);
-
-    // Typing indicators
-    Route::post('/messages/{conversationId}/typing', [\App\Http\Controllers\MessageController::class, 'setTypingIndicator']);
-    Route::get('/messages/{conversationId}/typing-users', [\App\Http\Controllers\MessageController::class, 'getTypingIndicators']);
+    Route::post('/follow/toggle', [SocialController::class, 'toggleFollow']);
 
     // Documents
     Route::post('/documents', [DocumentController::class, 'store']);
     Route::delete('/documents/{id}', [DocumentController::class, 'destroy']);
+    Route::post('/documents/{id}/like', [LikeController::class, 'toggleLikeDocument']);
     Route::post('/documents/{id}/comment', [DocumentController::class, 'comment']);
     Route::get('/documents/{id}/download', [DocumentController::class, 'download']);
 
@@ -117,6 +95,25 @@ Route::middleware('auth:sanctum')->group(function () {
     // Community
     Route::post('/community/questions', [CommunityController::class, 'storeQuestion']);
     Route::post('/community/questions/{questionId}/answers', [CommunityController::class, 'storeAnswer']);
+
+    // Messaging
+    Route::get('/messages/conversations', [MessageController::class, 'getConversations']);
+    Route::get('/messages/users/search', [MessageController::class, 'searchUsers']);
+    Route::post('/messages/start', [MessageController::class, 'startConversation']);
+    Route::get('/messages/unread-count', [MessageController::class, 'unreadCount']);
+    Route::get('/messages/{conversationId}', [MessageController::class, 'getMessages']);
+    Route::post('/messages/send', [MessageController::class, 'sendMessage']);
+    Route::post('/messages/{conversationId}/send', [MessageController::class, 'sendMessageWithAttachments']);
+    Route::put('/messages/read', [MessageController::class, 'markAsRead']);
+    Route::delete('/messages/{conversationId}/delete', [MessageController::class, 'deleteConversation']);
+    Route::post('/messages/{conversationId}/end', [MessageController::class, 'endConversation']);
+    Route::post('/messages/{conversationId}/reopen', [MessageController::class, 'reopenConversation']);
+    Route::post('/users/block', [MessageController::class, 'blockUser']);
+    Route::post('/users/{userId}/unblock', [MessageController::class, 'unblockUser']);
+    Route::get('/users/blocked', [MessageController::class, 'getBlockedUsers']);
+    Route::post('/messages/{conversationId}/typing', [MessageController::class, 'setTypingIndicator']);
+    Route::get('/messages/{conversationId}/typing-users', [MessageController::class, 'getTypingIndicators']);
+    Route::get('/messages/attachments/{attachmentId}/download', [MessageController::class, 'downloadAttachment']);
 
     // Universities (Admin only for creation/management)
     Route::post('/universities', [UniversityController::class, 'store']);

@@ -5,10 +5,32 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 class FirebaseAuthController extends Controller
 {
+    protected function assignDefaultRole(User $user): void
+    {
+        $roleName = 'student';
+
+        try {
+            $role = Role::firstOrCreate([
+                'name' => $roleName,
+                'guard_name' => 'web',
+            ]);
+
+            if (method_exists($user, 'assignRole')) {
+                $user->assignRole($role);
+            } else {
+                $user->role = $roleName;
+                $user->saveQuietly();
+            }
+        } catch (\Throwable $e) {
+            $user->role = $roleName;
+            $user->saveQuietly();
+        }
+    }
+
     public function login(Request $request)
     {
         $request->validate([
@@ -31,7 +53,7 @@ class FirebaseAuthController extends Controller
                 'status' => 'active'
             ]);
 
-            $user->assignRole('student');
+            $this->assignDefaultRole($user);
         } else {
             $updated = false;
             if (!$user->firebase_uid && $request->uid) {
@@ -49,6 +71,10 @@ class FirebaseAuthController extends Controller
             if ($updated) {
                 $user->save();
             }
+        }
+
+        if (empty($user->getRoleNames()->toArray())) {
+            $this->assignDefaultRole($user);
         }
 
         $token = $user->createToken('firebase-login')->plainTextToken;

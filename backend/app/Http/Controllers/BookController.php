@@ -34,8 +34,10 @@ class BookController extends Controller
 
         if (Auth::check()) {
             $book->is_favorited = $book->favorites()->where('user_id', Auth::id())->exists();
+            $book->is_liked = $book->likes()->where('user_id', Auth::id())->exists();
         } else {
             $book->is_favorited = false;
+            $book->is_liked = false;
         }
 
         return response()->json($book);

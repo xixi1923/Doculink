@@ -15,7 +15,14 @@ import {
   Briefcase,
   Eye,
   Download,
-  Layers
+  Layers,
+  FileCode,
+  FileImage,
+  FileVideo,
+  FileAudio,
+  FileArchive,
+  Presentation,
+  Table as Sheet
 } from 'lucide-react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { getUserProfile, getPublicProfileApi } from '@/api/authApi'
@@ -80,6 +87,19 @@ export default function PublicProfile(): React.JSX.Element {
   }
 
   const currentItems = getFilteredItems()
+
+  const getFileIcon = (fileType: string) => {
+    const type = fileType?.toLowerCase();
+    if (['pdf', 'doc', 'docx', 'txt', 'rtf'].includes(type)) return <FileText size={13} />;
+    if (['ppt', 'pptx'].includes(type)) return <Presentation size={13} />;
+    if (['xls', 'xlsx', 'csv'].includes(type)) return <Sheet size={13} />;
+    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(type)) return <FileImage size={13} />;
+    if (['mp4', 'mov', 'avi', 'mkv'].includes(type)) return <FileVideo size={13} />;
+    if (['mp3', 'wav', 'ogg'].includes(type)) return <FileAudio size={13} />;
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(type)) return <FileArchive size={13} />;
+    if (['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'html', 'css', 'php'].includes(type)) return <FileCode size={13} />;
+    return <FileText size={13} />;
+  }
 
   return (
     <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8 font-sans text-slate-800 dark:text-gray-200 antialiased">
@@ -304,15 +324,26 @@ export default function PublicProfile(): React.JSX.Element {
                   <div key={item.id} className="bg-white dark:bg-gray-900 border border-slate-100 dark:border-gray-800/80 rounded-2xl p-5 hover:border-teal-500/30 dark:hover:border-teal-400/20 transition-all duration-200 group flex gap-5 items-start">
 
                     {/* Compact Modern Academic Doc Frame */}
-                    <div className="w-12 h-16 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700/60 rounded-xl p-1.5 shrink-0 flex flex-col justify-between group-hover:bg-teal-500/5 transition-colors">
-                      <div className="space-y-1">
-                        <div className="h-0.5 w-full bg-slate-300 dark:bg-gray-600 rounded-sm" />
-                        <div className="h-0.5 w-4/5 bg-slate-300 dark:bg-gray-600 rounded-sm" />
-                        <div className="h-0.5 w-3/5 bg-slate-300 dark:bg-gray-600 rounded-sm" />
-                      </div>
-                      <div className="text-slate-400 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors flex justify-end">
-                        {isBook ? <BookOpen size={13} /> : <FileText size={13} />}
-                      </div>
+                    <div className="w-12 h-16 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700/60 rounded-xl p-0.5 shrink-0 flex flex-col justify-between group-hover:bg-teal-500/5 transition-colors overflow-hidden">
+                      {item.thumbnail || item.cover_image ? (
+                        <img src={item.thumbnail || item.cover_image} className="w-full h-full object-cover rounded-lg" alt="" />
+                      ) : (
+                        <div className="p-1.5 h-full flex flex-col justify-between">
+                          <div className="space-y-1">
+                            <div className={`h-0.5 w-full rounded-sm ${
+                              ['pdf', 'doc', 'docx'].includes(item.file_type?.toLowerCase()) ? 'bg-blue-400' :
+                              ['ppt', 'pptx'].includes(item.file_type?.toLowerCase()) ? 'bg-orange-400' :
+                              ['xls', 'xlsx'].includes(item.file_type?.toLowerCase()) ? 'bg-green-400' :
+                              'bg-slate-300 dark:bg-gray-600'
+                            }`} />
+                            <div className="h-0.5 w-4/5 bg-slate-300 dark:bg-gray-600 rounded-sm" />
+                            <div className="h-0.5 w-3/5 bg-slate-300 dark:bg-gray-600 rounded-sm" />
+                          </div>
+                          <div className="text-slate-400 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors flex justify-end">
+                            {isBook ? <BookOpen size={13} /> : getFileIcon(item.file_type)}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex-grow min-w-0">

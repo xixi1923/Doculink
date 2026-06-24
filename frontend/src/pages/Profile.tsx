@@ -27,6 +27,16 @@ export default function Profile(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(true)
   const { relationship, loading: relationshipLoading } = useFollow(userId)
 
+  const getDocumentImage = (id: number) => {
+    const images = [
+      'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=400',
+      'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&q=80&w=400',
+      'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=400',
+      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=400',
+    ]
+    return images[id % images.length]
+  }
+
   useEffect(() => {
     fetchData()
   }, [userId])
@@ -209,10 +219,14 @@ export default function Profile(): React.JSX.Element {
                     <Link
                       to={`/${isBookItem ? 'books' : 'documents'}/${item.id}`}
                       key={item.id}
-                      className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-transparent hover:border-teal-500/30 transition-all flex items-center gap-4 group"
+                      className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-transparent hover:border-teal-500/30 transition-all flex items-center gap-4 group"
                     >
-                      <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-800 flex items-center justify-center text-teal-600 shrink-0">
-                        {isBookItem ? <BookOpen size={24} /> : <FileText size={24} />}
+                      <div className="w-14 h-14 rounded-xl bg-white dark:bg-gray-800 overflow-hidden flex items-center justify-center text-teal-600 shrink-0 border border-slate-100 dark:border-gray-700">
+                        {item.cover_image || item.thumbnail ? (
+                          <img src={item.cover_image || item.thumbnail} className="w-full h-full object-cover" alt="" />
+                        ) : (
+                          <img src={getDocumentImage(item.id)} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="" />
+                        )}
                       </div>
                       <div className="min-w-0 flex-grow">
                         <div className="flex items-center justify-between gap-2">

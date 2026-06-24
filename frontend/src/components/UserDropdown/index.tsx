@@ -25,7 +25,6 @@ export default function UserDropdown() {
 
   const userMenuItems = [
     { label: 'My Workspace', icon: User, path: '/profile' },
-    { label: 'Saved Assets', icon: Heart, path: '/profile' },
     { label: 'Settings', icon: Settings, path: '/profile/settings' },
   ]
 
@@ -49,9 +48,13 @@ export default function UserDropdown() {
   const userName = user?.name || user?.displayName || user?.email || 'User'
   const userAvatar = user?.avatar || user?.photoURL || undefined
 
-  const initials = userName
-    ? userName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
-    : 'U'
+  useEffect(() => {
+    setImageError(false)
+  }, [userAvatar])
+
+  const initials = userName && userName !== 'User'
+    ? userName.split(' ').filter(Boolean).map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+    : (user?.email ? user.email[0].toUpperCase() : 'U')
 
   return (
     <div className="relative" ref={dropdownRef}>

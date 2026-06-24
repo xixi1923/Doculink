@@ -1,16 +1,19 @@
-import React, { useState } from 'react'
-import { MapPin, GraduationCap, ChevronDown, Star, ArrowUpRight, Search, Filter } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { MapPin, GraduationCap, Star, ArrowUpRight, Search, Filter, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import api from '@/api/authApi'
 
 // ================= TYPES & INTERFACES =================
 interface UniversityItem {
   id: number;
   name: string;
   location: string;
-  documents: string;
-  rating: number;
-  image: string;
-  isFeatured?: boolean;
+  documents_count: number;
+  rating?: number;
+  image?: string;
+  cover_image?: string;
+  logo?: string;
+  is_featured?: boolean;
 }
 
 interface ContributorItem {
@@ -20,33 +23,49 @@ interface ContributorItem {
   avatar: string;
 }
 
-// Mock Database
-const UNIVERSITIES: UniversityItem[] = [
-  { id: 1, name: 'Royal University of Phnom Penh', location: 'PHNOM PENH', documents: '12K', rating: 4.8, image: 'https://images.unsplash.com/photo-1541339907198-e087563f0283?auto=format&fit=crop&q=80&w=400', isFeatured: true },
-  { id: 2, name: 'Institute of Technology of Cambodia', location: 'PHNOM PENH', documents: '8K', rating: 4.7, image: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&q=80&w=400', isFeatured: true },
-  { id: 3, name: 'National University of Management', location: 'PHNOM PENH', documents: '5K', rating: 4.5, image: 'https://images.unsplash.com/photo-1523050853063-bd75160b3324?auto=format&fit=crop&q=80&w=400' },
-  { id: 4, name: 'Paññāsāstra University of Cambodia', location: 'PHNOM PENH', documents: '6K', rating: 4.6, image: 'https://images.unsplash.com/photo-1492538368677-f6e0afe31dcc?auto=format&fit=crop&q=80&w=400' },
-  { id: 5, name: 'Zaman University', location: 'PHNOM PENH', documents: '3K', rating: 4.4, image: 'https://images.unsplash.com/photo-1592280771190-3e2e4d571952?auto=format&fit=crop&q=80&w=400' },
-  { id: 6, name: 'Norton University', location: 'PHNOM PENH', documents: '4K', rating: 4.3, image: 'https://images.unsplash.com/photo-1519452635265-7b1fbfd1e4e0?auto=format&fit=crop&q=80&w=400' }
-]
-
-const CONTRIBUTORS: ContributorItem[] = [
-  { id: 1, name: 'Arun Vatt', uploads: 450, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120' },
-  { id: 2, name: 'Srey Leak', uploads: 380, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120' },
-  { id: 3, name: 'Norith Chan', uploads: 290, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=120' },
-  { id: 4, name: 'Piseth Keo', uploads: 210, avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=120' },
-  { id: 5, name: 'Chitra Hour', uploads: 185, avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=120' },
-  { id: 6, name: 'Dara Sam', uploads: 140, avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=120' }
-]
-
 export default function Universities(): React.JSX.Element {
   const [searchQuery, setSearchQuery] = useState('')
+  const [universities, setUniversities] = useState<UniversityItem[]>([])
+  const [contributors, setContributors] = useState<ContributorItem[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const filteredUniversities = UNIVERSITIES.filter(uni =>
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true)
+      try {
+        const [uniRes, contRes] = await Promise.all([
+          api.get('/universities'),
+          api.get('/stats/top-contributors')
+        ])
+        setUniversities(uniRes.data)
+        setContributors(contRes.data)
+      } catch (err) {
+        console.error('Failed to fetch university data', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  const filteredUniversities = universities.filter(uni =>
     uni.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const featuredUniversities = UNIVERSITIES.filter(uni => uni.isFeatured)
+  const featuredUniversities = universities.filter(uni => uni.is_featured).slice(0, 2)
+  // Fallback if no featured universities marked
+  const displayFeatured = featuredUniversities.length > 0
+    ? featuredUniversities
+    : universities.slice(0, 2)
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center">
+        <Loader2 className="animate-spin text-teal-600 mb-4" size={32} />
+        <p className="text-xs text-slate-400 font-black uppercase tracking-widest">Loading Institution Matrix...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-slate-800 font-sans selection:bg-teal-500 selection:text-white">
@@ -76,18 +95,6 @@ export default function Universities(): React.JSX.Element {
               className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all placeholder:text-slate-500"
             />
           </div>
-
-          {/* Inline Pills Filter row component */}
-          <div className="flex flex-wrap justify-center gap-2">
-            {['All Cities', 'Top Rated', 'Featured', 'Newest'].map((filter) => (
-              <button
-                key={filter}
-                className="px-3.5 py-1.5 bg-white/5 border border-white/10 rounded-full text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 hover:bg-white/10 hover:border-teal-500/40 transition-all"
-              >
-                {filter} <ChevronDown size={11} className="text-slate-400" />
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Radial blur ambient background flares */}
@@ -96,23 +103,27 @@ export default function Universities(): React.JSX.Element {
       </div>
 
       {/* ================= FEATURED UNIVERSITIES ================= */}
-      {!searchQuery && (
+      {!searchQuery && displayFeatured.length > 0 && (
         <div className="mb-16">
           <div className="flex items-center gap-2 mb-6 px-1">
              <div className="w-1.5 h-6 bg-teal-500 rounded-full" />
              <h2 className="text-lg font-black text-slate-900 tracking-tight">Featured for You</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {featuredUniversities.map(uni => (
+            {displayFeatured.map(uni => (
               <Link to={`/universities/${uni.id}`} key={uni.id} className="relative h-64 rounded-[32px] overflow-hidden group shadow-lg">
-                <img src={uni.image} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={uni.name} />
+                <img
+                  src={uni.cover_image || 'https://images.unsplash.com/photo-1541339907198-e087563f0283?auto=format&fit=crop&q=80&w=600'}
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  alt={uni.name}
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent" />
                 <div className="absolute bottom-6 left-6 right-6">
                    <span className="bg-teal-500 text-white text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest mb-2 inline-block">Featured</span>
                    <h3 className="text-white text-xl font-black leading-tight mb-2">{uni.name}</h3>
                    <div className="flex items-center gap-4 text-slate-300 text-[11px] font-bold">
                       <span className="flex items-center gap-1"><MapPin size={12} /> {uni.location}</span>
-                      <span className="flex items-center gap-1"><GraduationCap size={12} /> {uni.documents} Documents</span>
+                      <span className="flex items-center gap-1"><GraduationCap size={12} /> {uni.documents_count} Documents</span>
                    </div>
                 </div>
                 <div className="absolute top-6 right-6 bg-white/20 backdrop-blur-md text-white p-2 rounded-xl border border-white/20 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
@@ -149,12 +160,12 @@ export default function Universities(): React.JSX.Element {
             >
               <div className="h-48 relative overflow-hidden bg-slate-50">
                 <img
-                  src={uni.image}
+                  src={uni.cover_image || 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&q=80&w=400'}
                   alt={uni.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
                 <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-xl text-[10px] font-black text-slate-800 flex items-center gap-1 shadow-sm border border-slate-100">
-                  <Star size={11} className="fill-amber-400 text-amber-400" /> {uni.rating}
+                  <Star size={11} className="fill-amber-400 text-amber-400" /> {uni.rating || '4.5'}
                 </div>
               </div>
 
@@ -170,7 +181,7 @@ export default function Universities(): React.JSX.Element {
                   </div>
                   <div className="flex items-center gap-1">
                     <GraduationCap size={12} className="text-teal-500" />
-                    <span>{uni.documents}</span>
+                    <span>{uni.documents_count}</span>
                   </div>
                 </div>
 
@@ -199,13 +210,14 @@ export default function Universities(): React.JSX.Element {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
-            {CONTRIBUTORS.map((contributor: ContributorItem) => (
+            {contributors.map((contributor: ContributorItem) => (
               <div
                 key={contributor.id}
+                onClick={() => contributor.id && (window.location.href = `/user/${contributor.id}`)}
                 className="bg-white/5 p-4 rounded-[24px] border border-white/5 text-center group cursor-pointer hover:bg-white/10 transition-all"
               >
                 <div className="w-14 h-14 rounded-2xl overflow-hidden mx-auto mb-3 border-2 border-white/10 group-hover:border-teal-500 transition-all">
-                  <img src={contributor.avatar} alt={contributor.name} className="w-full h-full object-cover" />
+                  <img src={contributor.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(contributor.name)}&background=random`} alt={contributor.name} className="w-full h-full object-cover" />
                 </div>
                 <p className="font-bold text-white text-xs truncate mb-1">{contributor.name}</p>
                 <div className="bg-teal-500/10 text-teal-400 text-[9px] font-black py-1 px-2 rounded-full inline-block uppercase tracking-wider">

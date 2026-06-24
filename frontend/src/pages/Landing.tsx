@@ -9,7 +9,8 @@ import {
   ArrowRight,
   Award,
   FileText,
-  Star
+  Star,
+  type LucideIcon
 } from 'lucide-react'
 
 // ================= TYPES & INTERFACES =================
@@ -21,7 +22,7 @@ interface StatItem {
 interface FeatureItem {
   title: string;
   desc: string;
-  icon: React.ComponentType<{ size: number | string; className?: string }>;
+  icon: LucideIcon;
   gradient: string;
 }
 

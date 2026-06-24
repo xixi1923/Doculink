@@ -7,6 +7,8 @@ import {
   PlusCircle,
   ArrowUpRight,
   Search,
+  Eye,
+  Download,
   EyeOff,
   Flag,
   Send,
@@ -21,7 +23,7 @@ import {
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
-import { getTrendingDocuments, getDocumentById, addDocumentComment } from '@/api/documentApi'
+import { getTrendingDocuments, getDocuments, getDocumentById, addDocumentComment, downloadDocument } from '@/api/documentApi'
 import { toggleDocumentLikeApi, toggleFavoriteApi, replyCommentApi } from '@/api/authApi'
 import { useAuthStore } from '@/store/authStore'
 import CommentSection from '@/components/CommentSection'
@@ -55,10 +57,12 @@ export default function Trending() {
   const fetchTrending = async () => {
     setLoading(true)
     try {
-      const data = await getTrendingDocuments()
-      setPosts(data)
-      // Set the first 3 as continue reading if they exist
-      setContinueReading(data.slice(0, 3))
+      const [trendingData, recentData] = await Promise.all([
+        getTrendingDocuments(),
+        getDocuments({ limit: 5 })
+      ])
+      setPosts(trendingData)
+      setContinueReading(recentData.data || recentData.slice?.(0, 5) || [])
     } catch (error) {
       console.error('Failed to fetch trending data', error)
     } finally {
@@ -154,6 +158,19 @@ export default function Trending() {
     }
   }
 
+  const handleDownload = async (postId: number) => {
+    if (!token) return navigate('/login')
+    try {
+      const res = await downloadDocument(postId.toString())
+      if (res.url) {
+        window.open(res.url, '_blank')
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, download_count: (p.download_count || 0) + 1 } : p))
+      }
+    } catch (error) {
+      console.error('Failed to download', error)
+    }
+  }
+
   const filteredPosts = posts.filter(post =>
     post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (post.user?.name || '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -161,10 +178,10 @@ export default function Trending() {
 
   const getDocumentImage = (id: number) => {
     const images = [
-      'https://images.unsplash.com/photo-1576086213369-97a306dca664?auto=format&fit=crop&q=80&w=400',
-      'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=400',
-      'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=400',
-      'https://images.unsplash.com/photo-1532187875605-2fe358a3d4f2?auto=format&fit=crop&q=80&w=400',
+      'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=400',
+      'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&q=80&w=400',
+      'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=400',
+      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=400',
     ]
     return images[id % images.length]
   }
@@ -196,7 +213,14 @@ export default function Trending() {
             filteredPosts.map((post) => (
               <div key={post.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden transition-colors">
               <div className="p-4 flex items-center justify-between border-b dark:border-gray-700 relative">
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Recommended for you</span>
+                <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Trending Now</span>
+                    {post.created_at && (
+                        <span className="px-2 py-0.5 bg-slate-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-[8px] font-black uppercase tracking-widest rounded">
+                            {new Date(post.created_at).toLocaleDateString()}
+                        </span>
+                    )}
+                </div>
                 <div className="relative" ref={activeMenu === post.id ? menuRef : null}>
                   <button
                     onClick={() => setActiveMenu(activeMenu === post.id ? null : post.id)}
@@ -237,8 +261,12 @@ export default function Trending() {
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                       by <Link to={post.user?.username ? `/profile/${post.user.username}` : `/user/${post.user?.id}`} className="font-bold text-gray-900 dark:text-gray-200 hover:underline hover:text-primary transition-colors">{post.user?.name}</Link>
                     </p>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                         {post.category?.name} • {post.user?.academic_title || post.university?.short_name || post.university?.name || 'Academic Institution'}
+                        <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                        <span className="flex items-center gap-1 text-teal-500"><Eye size={12} /> {post.view_count || 0}</span>
+                        <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                        <span className="flex items-center gap-1 text-teal-500"><Download size={12} /> {post.download_count || 0}</span>
                     </p>
 
                     <p className="text-sm text-gray-500 dark:text-gray-500 line-clamp-3 mb-4 leading-relaxed">
@@ -307,6 +335,16 @@ export default function Trending() {
                   >
                     {sharedPostId === post.id ? <Check size={16} /> : <Share2 size={16} />}
                     {sharedPostId === post.id ? 'Copied' : 'Share'}
+                  </button>
+
+                  {/* Download Button */}
+                  <button
+                    onClick={() => handleDownload(post.id)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-teal-500 hover:text-white transition-all"
+                  >
+                    <Download size={16} />
+                    Download
+                    {(post.download_count || 0) > 0 && <span className="ml-0.5 text-xs opacity-70">{post.download_count}</span>}
                   </button>
 
                   {/* Author & Follow */}
@@ -395,17 +433,24 @@ export default function Trending() {
         <div className="hidden lg:block lg:col-span-4 space-y-6">
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold text-gray-900 dark:text-white">Continue Reading</h3>
-              <Link to="#" className="text-[10px] font-bold uppercase tracking-widest text-primary hover:underline">View all</Link>
+              <h3 className="font-bold text-gray-900 dark:text-white">Recently Uploaded</h3>
+              <Link to="/search" className="text-[10px] font-bold uppercase tracking-widest text-primary hover:underline">View all</Link>
             </div>
 
             <div className="space-y-6">
               {continueReading.length > 0 ? continueReading.map((item) => (
-                <div key={item.id} className="group cursor-pointer" onClick={() => navigate(`/documents/${item.id}`)}>
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-gray-200 leading-tight group-hover:text-primary transition-colors line-clamp-2 mb-1">
-                    {item.title}
-                  </h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">by {item.user?.name}</p>
+                <div key={item.id} className="group cursor-pointer flex gap-3 items-start" onClick={() => navigate(`/documents/${item.id}`)}>
+                  <div className="w-12 h-16 bg-slate-50 dark:bg-gray-900 rounded-lg overflow-hidden shrink-0 border dark:border-gray-700">
+                    <img src={item.thumbnail || getDocumentImage(item.id)} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-[13px] font-bold text-gray-900 dark:text-gray-200 leading-tight group-hover:text-primary transition-colors line-clamp-2 mb-1">
+                        {item.title}
+                    </h4>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest truncate">
+                        {item.category?.name || 'General'}
+                    </p>
+                  </div>
                 </div>
               )) : (
                 <p className="text-xs text-gray-400">No recent activity found.</p>

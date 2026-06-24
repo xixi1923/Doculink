@@ -15,9 +15,16 @@ import {
   ThumbsUp,
   BarChart3,
   ChevronDown,
-  Edit2
+  Edit2,
+  FileCode,
+  FileImage,
+  FileVideo,
+  FileAudio,
+  FileArchive,
+  Presentation,
+  Table as Sheet
 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { getProfile } from '@/api/authApi'
 import { deleteDocument } from '@/api/documentApi'
 import { useAuthStore } from '@/store/authStore'
@@ -27,6 +34,7 @@ type TabType = 'uploads' | 'fav_docs' | 'fav_books' | 'analytics' | 'followers';
 export default function MyProfile(): React.JSX.Element | null {
   const { user: currentUser, logout } = useAuthStore()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState<TabType>('uploads')
   const [profileData, setProfileData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -38,7 +46,17 @@ export default function MyProfile(): React.JSX.Element | null {
         return
     }
     fetchData()
-  }, [currentUser, navigate])
+
+    // Handle initial tab from query param
+    const tabParam = searchParams.get('tab')
+    if (tabParam === 'saved') {
+      setActiveTab('fav_docs')
+    } else if (tabParam === 'analytics') {
+      setActiveTab('analytics')
+    } else if (tabParam === 'uploads') {
+      setActiveTab('uploads')
+    }
+  }, [currentUser, navigate, searchParams])
 
   useEffect(() => {
     // Scroll to content immediately when tab changes
@@ -103,12 +121,25 @@ export default function MyProfile(): React.JSX.Element | null {
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )
     }
-    if (activeTab === 'fav_docs') return user.favorites?.filter((f: any) => f.document_id).map((f: any) => ({...f.document, itemType: 'doc'})) || []
-    if (activeTab === 'fav_books') return user.favorites?.filter((f: any) => f.book_id).map((f: any) => ({...f.book, itemType: 'book'})) || []
+    if (activeTab === 'fav_docs') return user.favorites?.filter((f: any) => f.document_id && f.document).map((f: any) => ({...f.document, itemType: 'doc'})) || []
+    if (activeTab === 'fav_books') return user.favorites?.filter((f: any) => f.book_id && f.book).map((f: any) => ({...f.book, itemType: 'book'})) || []
     return []
   }
 
   const currentItems = getTabContent()
+
+  const getFileIcon = (fileType: string) => {
+    const type = fileType?.toLowerCase();
+    if (['pdf', 'doc', 'docx', 'txt', 'rtf'].includes(type)) return <FileText size={14} />;
+    if (['ppt', 'pptx'].includes(type)) return <Presentation size={14} />;
+    if (['xls', 'xlsx', 'csv'].includes(type)) return <Sheet size={14} />;
+    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(type)) return <FileImage size={14} />;
+    if (['mp4', 'mov', 'avi', 'mkv'].includes(type)) return <FileVideo size={14} />;
+    if (['mp3', 'wav', 'ogg'].includes(type)) return <FileAudio size={14} />;
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(type)) return <FileArchive size={14} />;
+    if (['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'html', 'css', 'php'].includes(type)) return <FileCode size={14} />;
+    return <FileText size={14} />;
+  }
 
   return (
     <div className="max-w-6xl mx-auto py-12 px-4 sm:px-6 lg:px-8 font-sans text-slate-800 dark:text-gray-200">
@@ -203,10 +234,18 @@ export default function MyProfile(): React.JSX.Element | null {
 
           {/* Segment Section Divider and Horizontal Action Switchers */}
           <div className="flex justify-between items-center border-b border-slate-200 dark:border-gray-700 pb-2 mt-4">
-            <h3 className="text-base font-semibold text-slate-800 dark:text-gray-200">Uploads</h3>
-            <button className="text-xs text-teal-600 dark:text-teal-400 font-medium hover:underline flex items-center gap-1">
-              <Edit2 size={12} /> Edit Uploads
-            </button>
+            <h3 className="text-base font-semibold text-slate-800 dark:text-gray-200">
+              {activeTab === 'uploads' ? 'My Uploads' :
+               activeTab === 'fav_docs' ? 'Saved Assets' :
+               activeTab === 'fav_books' ? 'My Library' :
+               activeTab === 'analytics' ? 'Performance Analytics' :
+               'Community Network'}
+            </h3>
+            {activeTab === 'uploads' && (
+              <button className="text-xs text-teal-600 dark:text-teal-400 font-medium hover:underline flex items-center gap-1">
+                <Edit2 size={12} /> Edit Uploads
+              </button>
+            )}
           </div>
 
           {/* Secondary Sub-navigation Horizontal Selector Tabs */}
@@ -225,7 +264,7 @@ export default function MyProfile(): React.JSX.Element | null {
                 activeTab === 'fav_docs' ? 'bg-teal-50 text-teal-600 font-medium' : 'hover:bg-slate-100 dark:hover:bg-gray-800'
               }`}
             >
-              Saved Papers ({user.favorites?.filter((f: any) => f.document_id).length || 0})
+              Saved Assets ({user.favorites?.filter((f: any) => f.document_id).length || 0})
             </button>
             <button
               onClick={() => setActiveTab('fav_books')}
@@ -292,15 +331,26 @@ export default function MyProfile(): React.JSX.Element | null {
                     <div key={item.id} className="flex gap-4 items-start pb-6 border-b border-slate-100 dark:border-gray-800 last:border-0">
 
                       {/* Standard Document Icon Placeholder Block Frame */}
-                      <div className="w-14 h-18 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded p-1 shadow-sm shrink-0 flex flex-col justify-between">
-                        <div className="space-y-1">
-                          <div className="h-1 w-full bg-slate-100 dark:bg-slate-700 rounded" />
-                          <div className="h-1 w-5/6 bg-slate-100 dark:bg-slate-700 rounded" />
-                          <div className="h-1 w-4/6 bg-slate-100 dark:bg-slate-700 rounded" />
-                        </div>
-                        <div className="flex justify-end text-slate-300">
-                          {isBook ? <BookOpen size={14} /> : <FileText size={14} />}
-                        </div>
+                      <div className="w-14 h-18 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded p-0.5 shadow-sm shrink-0 flex flex-col justify-between overflow-hidden">
+                        {item.thumbnail || item.cover_image ? (
+                          <img src={item.thumbnail || item.cover_image} className="w-full h-full object-cover rounded" alt="" />
+                        ) : (
+                          <div className="p-1 h-full flex flex-col justify-between">
+                            <div className="space-y-1">
+                              <div className={`h-1 w-full rounded ${
+                                ['pdf', 'doc', 'docx'].includes(item.file_type?.toLowerCase()) ? 'bg-blue-400' :
+                                ['ppt', 'pptx'].includes(item.file_type?.toLowerCase()) ? 'bg-orange-400' :
+                                ['xls', 'xlsx'].includes(item.file_type?.toLowerCase()) ? 'bg-green-400' :
+                                'bg-slate-100 dark:bg-slate-700'
+                              }`} />
+                              <div className="h-1 w-5/6 bg-slate-100 dark:bg-slate-700 rounded" />
+                              <div className="h-1 w-4/6 bg-slate-100 dark:bg-slate-700 rounded" />
+                            </div>
+                            <div className="flex justify-end text-slate-300">
+                              {isBook ? <BookOpen size={14} /> : getFileIcon(item.file_type)}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Content Core Body */}

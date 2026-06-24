@@ -34,6 +34,11 @@ export interface Document {
   user_id: number;
   views_count: number;
   downloads_count: number;
+  download_count?: number;
+  likes_count?: number;
+  is_liked?: boolean;
+  is_favorited?: boolean;
+  comments_count?: number;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   user?: User;

@@ -76,7 +76,13 @@ export default function BookDetail() {
     try {
       const res = await api.get(`/books/${id}/download`)
       window.open(res.data.url, '_blank')
-      setBook({ ...book, download_count: (book.download_count || 0) + 1 })
+      setBook((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          download_count: (prev.download_count || 0) + 1
+        }
+      })
     } catch (err) {
       console.error(err)
     }

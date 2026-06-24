@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import {
   Search as SearchIcon,
   ChevronDown,
@@ -17,10 +17,14 @@ import {
   Calendar,
   Layers
 } from 'lucide-react'
-import api from '@/api/authApi'
+import api, { toggleDocumentLikeApi } from '@/api/authApi'
+import { downloadDocument } from '@/api/documentApi'
+import { useAuthStore } from '@/store/authStore'
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const { token } = useAuthStore()
+  const navigate = useNavigate()
   const query = searchParams.get('q') || ''
   const catParam = searchParams.get('category') || ''
 
@@ -79,6 +83,56 @@ export default function Search() {
         newParams.delete('category')
     }
     setSearchParams(newParams)
+  }
+
+  const handleLike = async (id: number, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!token) {
+        return navigate('/login')
+    }
+
+    try {
+        const res = await toggleDocumentLikeApi(id)
+        setResults(prev => prev.map(item => {
+            if (item.id === id) {
+                return {
+                    ...item,
+                    is_liked: res.liked,
+                    likes_count: res.liked ? (item.likes_count || 0) + 1 : Math.max(0, (item.likes_count || 0) - 1)
+                }
+            }
+            return item
+        }))
+    } catch (err) {
+        console.error('Failed to like', err)
+    }
+  }
+
+  const handleDownload = async (id: number, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!token) {
+        return navigate('/login')
+    }
+
+    try {
+        const res = await downloadDocument(id.toString())
+        if (res.url) {
+            window.open(res.url, '_blank')
+            // Optimistically update download count
+            setResults(prev => prev.map(item => {
+                if (item.id === id) {
+                    return { ...item, download_count: (item.download_count || 0) + 1 }
+                }
+                return item
+            }))
+        }
+    } catch (err) {
+        console.error('Failed to download', err)
+    }
   }
 
   const renderFilePreview = (doc: any) => {
@@ -248,18 +302,41 @@ export default function Search() {
                         </Link>
 
                         <div className="flex items-center gap-6 text-slate-400">
-                             <div className="flex items-center gap-1.5" title="Likes">
-                                <Heart size={15} className={`opacity-60 ${(item.likes_count > 0) ? 'fill-rose-500 text-rose-500 opacity-100' : ''}`} />
-                                <span className="text-[11px] font-bold text-slate-700">{item.likes_count || 0}</span>
-                             </div>
-                             <div className="flex items-center gap-1.5" title="Comments">
-                                <MessageSquare size={15} className="opacity-60" />
-                                <span className="text-[11px] font-bold text-slate-700">{item.comments_count || 0}</span>
-                             </div>
-                             <div className="flex items-center gap-1.5" title="Downloads">
-                                <Download size={15} className="opacity-60" />
-                                <span className="text-[11px] font-bold text-slate-700">{item.download_count || item.downloads_count || 0}</span>
-                             </div>
+                             <button
+                                onClick={(e) => handleLike(item.id, e)}
+                                className="flex items-center gap-1.5 group/icon"
+                                title="Like"
+                             >
+                                <Heart
+                                    size={15}
+                                    className={`transition-all ${item.is_liked ? 'fill-rose-500 text-rose-500' : 'opacity-60 group-hover/icon:text-rose-500'} ${!item.is_liked && item.likes_count > 0 ? 'text-rose-500/70' : ''}`}
+                                />
+                                <span className={`text-[11px] font-bold ${item.is_liked ? 'text-rose-500' : 'text-slate-700'}`}>
+                                    {item.likes_count || 0}
+                                </span>
+                             </button>
+
+                             <Link
+                                to={`/${activeTab === 'books' ? 'books' : 'documents'}/${item.id}#comments`}
+                                className="flex items-center gap-1.5 group/icon"
+                                title="Comments"
+                             >
+                                <MessageSquare size={15} className="opacity-60 group-hover/icon:text-teal-500 transition-colors" />
+                                <span className="text-[11px] font-bold text-slate-700 group-hover/icon:text-teal-500 transition-colors">
+                                    {item.comments_count || 0}
+                                </span>
+                             </Link>
+
+                             <button
+                                onClick={(e) => handleDownload(item.id, e)}
+                                className="flex items-center gap-1.5 group/icon"
+                                title="Download"
+                             >
+                                <Download size={14} className="opacity-60 group-hover/icon:text-teal-600 transition-colors" />
+                                <span className={`text-[11px] font-bold transition-colors group-hover/icon:text-teal-600 ${item.download_count > 0 ? 'text-teal-600/70' : 'text-slate-700'}`}>
+                                    {item.download_count || 0}
+                                </span>
+                             </button>
                         </div>
                     </div>
                   </div>

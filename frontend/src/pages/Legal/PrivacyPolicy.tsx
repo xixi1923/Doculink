@@ -1,11 +1,11 @@
 import React from 'react'
-import { Shield, Eye, Lock, Cookie, Mail, Calendar } from 'lucide-react'
+import { Shield, Eye, Lock, Cookie, Mail, Calendar, type LucideIcon } from 'lucide-react'
 
 // ================= TYPES & INTERFACES =================
 interface PolicySection {
   title: string;
   content: string;
-  icon: React.ComponentType<{ size: number | string; className?: string }>;
+  icon: LucideIcon;
 }
 
 export default function PrivacyPolicy(): React.JSX.Element {

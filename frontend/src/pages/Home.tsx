@@ -12,9 +12,11 @@ import {
   GraduationCap,
   Layers
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { getCategories } from '@/api/categoryApi'
-import { getDocuments } from '@/api/documentApi'
+import { getDocuments, downloadDocument } from '@/api/documentApi'
 import { getHomeStats } from '@/api/statsApi'
+import { useAuthStore } from '@/store/authStore'
 import { Category, Document, HomeStats } from '@/types'
 
 // ================= UI HELPERS =================
@@ -40,10 +42,10 @@ const formatNumber = (num: number | undefined) => {
 
 const getDocumentImage = (id: number) => {
   const images = [
-    'https://images.unsplash.com/photo-1576086213369-97a306dca664?auto=format&fit=crop&q=80&w=400',
-    'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=400',
-    'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=400',
-    'https://images.unsplash.com/photo-1532187875605-2fe358a3d4f2?auto=format&fit=crop&q=80&w=400',
+    'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=400',
+    'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&q=80&w=400',
+    'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=400',
+    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=400',
   ]
   return images[id % images.length]
 }
@@ -54,6 +56,8 @@ export default function Home(): React.JSX.Element {
   const [documents, setDocuments] = useState<Document[]>([])
   const [stats, setStats] = useState<HomeStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const { token } = useAuthStore()
+  const navigate = useNavigate()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,6 +78,31 @@ export default function Home(): React.JSX.Element {
     }
     fetchData()
   }, [])
+
+  const handleDownload = async (id: number, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!token) {
+        return navigate('/login')
+    }
+
+    try {
+        const res = await downloadDocument(id.toString())
+        if (res.url) {
+            window.open(res.url, '_blank')
+            // Update local state if needed
+            setDocuments(prev => prev.map(item => {
+                if (item.id === id) {
+                    return { ...item, download_count: (item.download_count || 0) + 1 }
+                }
+                return item
+            }))
+        }
+    } catch (err) {
+        console.error('Failed to download', err)
+    }
+  }
 
   return (
     <div className="bg-slate-50/50 dark:bg-gray-950 min-h-screen pb-16 text-slate-800 dark:text-gray-200 font-sans selection:bg-teal-500 selection:text-white transition-colors duration-300">
@@ -217,7 +246,13 @@ export default function Home(): React.JSX.Element {
                       </div>
                       {/* Compact Interactive Download Button */}
                       <div className="absolute bottom-3 right-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                         <div className="w-8 h-8 bg-teal-600 text-white rounded-lg flex items-center justify-center shadow-md hover:bg-teal-700"><Download size={14} /></div>
+                         <button
+                            onClick={(e) => handleDownload(doc.id, e)}
+                            className="w-8 h-8 bg-teal-600 text-white rounded-lg flex items-center justify-center shadow-md hover:bg-teal-700 transition-colors"
+                            title="Download Paper"
+                         >
+                            <Download size={14} />
+                         </button>
                       </div>
                     </div>
 
@@ -237,8 +272,8 @@ export default function Home(): React.JSX.Element {
                           <span className="text-xs font-bold text-slate-700 truncate group-hover/user:text-teal-600 transition-colors">{doc.user?.name || 'Anonymous'}</span>
                         </Link>
                         <div className="flex items-center gap-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide shrink-0">
-                          <span className="flex items-center gap-0.5"><Eye size={12} /> {formatNumber(doc.views_count)}</span>
-                          <span className="flex items-center gap-0.5"><FileText size={12} /> {doc.file_type?.toUpperCase()}</span>
+                          <span className="flex items-center gap-0.5"><Eye size={12} /> {formatNumber(doc.view_count)}</span>
+                          <span className="flex items-center gap-0.5"><Download size={12} /> {formatNumber(doc.download_count)}</span>
                         </div>
                       </div>
                     </div>

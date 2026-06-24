@@ -88,6 +88,17 @@ export default function Settings(): React.JSX.Element {
           avatar: user.avatar || undefined
         })
         setUniversities(univsData)
+
+        // Sync with Auth Store to keep header updated
+        if (token && user) {
+          setAuth({
+            ...user,
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatar: user.avatar
+          }, token)
+        }
       } catch (error) {
         console.error('Failed to fetch profile', error)
       } finally {
@@ -129,12 +140,13 @@ export default function Settings(): React.JSX.Element {
         avatar: updatedUser.avatar || undefined
       })
 
-      if (token) {
+      if (token && updatedUser) {
         setAuth({
-          uid: updatedUser.id.toString(),
-          email: updatedUser.email,
-          displayName: updatedUser.name,
-          photoURL: updatedUser.avatar || null
+          ...updatedUser,
+          id: updatedUser.id,
+          name: updatedUser.name || profile.name,
+          email: updatedUser.email || profile.email,
+          avatar: updatedUser.avatar
         }, token)
       }
 
@@ -204,12 +216,13 @@ export default function Settings(): React.JSX.Element {
       setProfile(prev => ({ ...prev, avatar: response.url }))
       setImageError(false)
 
-      if (token) {
+      if (token && updatedUser) {
         setAuth({
-          uid: updatedUser.id.toString(),
-          email: updatedUser.email,
-          displayName: updatedUser.name,
-          photoURL: response.url || null
+          ...updatedUser,
+          id: updatedUser.id,
+          name: updatedUser.name || profile.name,
+          email: updatedUser.email || profile.email,
+          avatar: response.url || updatedUser.avatar
         }, token)
       }
     } catch (error: any) {
@@ -229,7 +242,7 @@ export default function Settings(): React.JSX.Element {
   }
 
   const initials = profile.name
-    ? profile.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    ? profile.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
     : 'U'
 
   return (

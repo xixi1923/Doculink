@@ -11,14 +11,18 @@ import {
   Upload,
   BookOpen,
   Download,
-  ChevronRight
+  ChevronRight,
+  Search
 } from 'lucide-react'
 import api from '@/api/authApi'
+
+import { getDocuments, downloadDocument } from '@/api/documentApi'
 
 export default function UniversityDetail() {
   const { id } = useParams()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     api.get(`/universities/${id}`)
@@ -26,6 +30,29 @@ export default function UniversityDetail() {
       .catch(err => console.error(err))
       .finally(() => setLoading(false))
   }, [id])
+
+  const handleDownload = async (docId: number, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      const res = await downloadDocument(docId.toString())
+      if (res.url) {
+        window.open(res.url, '_blank')
+        setData((prev: any) => ({
+          ...prev,
+          documents: prev.documents.map((d: any) =>
+            d.id === docId ? { ...d, download_count: (d.download_count || 0) + 1 } : d
+          ),
+          stats: {
+            ...prev.stats,
+            total_downloads: (prev.stats.total_downloads || 0) + 1
+          }
+        }))
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
@@ -36,6 +63,10 @@ export default function UniversityDetail() {
   if (!data) return <div className="p-20 text-center text-slate-500">University not found.</div>
 
   const { university, documents, stats } = data
+
+  const filteredDocuments = (documents || []).filter((doc: any) =>
+    doc.title.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 selection:bg-teal-500/30">
@@ -111,24 +142,42 @@ export default function UniversityDetail() {
         {/* Repository Column */}
         <div className="lg:col-span-2 space-y-12">
            <section>
-              <div className="flex items-center justify-between mb-8">
-                 <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">University Repository</h2>
-                 <Link to="/search" className="text-[10px] font-black text-teal-600 uppercase tracking-[0.2em] hover:text-teal-700 transition-colors flex items-center gap-1">
-                   Search Filter <ChevronRight size={14} />
-                 </Link>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                 <div>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">University Repository</h2>
+                    <p className="text-[11px] text-slate-400 font-medium">Explore academic materials shared by peers</p>
+                 </div>
+                 <div className="relative w-full md:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                    <input
+                        type="text"
+                        placeholder="Search books or docs..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-teal-500 transition-all"
+                    />
+                 </div>
               </div>
 
               <div className="space-y-4">
-                 {documents && documents.length > 0 ? documents.map((doc: any) => (
+                 {filteredDocuments.length > 0 ? filteredDocuments.map((doc: any) => (
                     <Link to={`/documents/${doc.id}`} key={doc.id} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 flex items-center gap-5 hover:border-teal-500/30 transition-all group shadow-sm">
                        <div className="w-14 h-14 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-teal-600 shrink-0">
                           <FileText size={28} />
                        </div>
                        <div className="flex-grow min-w-0">
                           <h4 className="font-bold text-slate-900 dark:text-white truncate group-hover:text-teal-600 transition-colors">{doc.title}</h4>
-                          <p className="text-[11px] text-slate-400 font-medium mt-1">
-                             By {doc.user?.name} • {doc.category?.name} • {doc.download_count || 0} Downloads
-                          </p>
+                          <div className="flex items-center gap-3 mt-1">
+                             <p className="text-[11px] text-slate-400 font-medium">
+                                By {doc.user?.name} • {doc.category?.name}
+                             </p>
+                             <button
+                                onClick={(e) => handleDownload(doc.id, e)}
+                                className="flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 transition-colors"
+                             >
+                                <Download size={12} /> {doc.download_count || 0}
+                             </button>
+                          </div>
                        </div>
                        <ArrowRight size={18} className="text-slate-300 group-hover:text-teal-600 group-hover:translate-x-1 transition-all" />
                     </Link>

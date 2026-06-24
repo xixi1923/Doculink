@@ -35,8 +35,7 @@ export default function UploadDocument(): React.JSX.Element {
     category_id: '',
     university_id: '',
     subject: '',
-    course_code: '',
-    author: '',
+    resource_level: '',
     publisher: '',
     publication_year: '',
     isbn: '',
@@ -236,13 +235,13 @@ export default function UploadDocument(): React.JSX.Element {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">University</label>
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">University or School</label>
                     <select
                       value={formData.university_id}
                       onChange={e => setFormData({...formData, university_id: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none appearance-none"
                     >
-                      <option value="">Select University (Optional)</option>
+                      <option value="">Select University or School (Optional)</option>
                       {universities.map(uni => (
                         <option key={uni.id} value={uni.id}>{uni.name}</option>
                       ))}
@@ -302,13 +301,22 @@ export default function UploadDocument(): React.JSX.Element {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Course Code</label>
-                        <input
-                          value={formData.course_code}
-                          onChange={e => setFormData({...formData, course_code: e.target.value})}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-600/20"
-                          placeholder="e.g. CS101"
-                        />
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Resource Level</label>
+                        <select
+                          value={formData.resource_level}
+                          onChange={e => setFormData({...formData, resource_level: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none appearance-none"
+                        >
+                          <option value="">Select Level (Optional)</option>
+                          <option value="High School">High School</option>
+                          <option value="Year 1">Year 1</option>
+                          <option value="Year 2">Year 2</option>
+                          <option value="Year 3">Year 3</option>
+                          <option value="Year 4">Year 4</option>
+                          <option value="Master">Master</option>
+                          <option value="PhD">PhD</option>
+                          <option value="Other">Other</option>
+                        </select>
                       </div>
                     </>
                   )}

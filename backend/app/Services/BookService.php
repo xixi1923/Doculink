@@ -36,14 +36,16 @@ class BookService
     {
         if ($file) {
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            Storage::disk('r2')->putFileAs('books', $file, $filename);
-            $data['file_path'] = rtrim(config('filesystems.disks.r2.url'), '/') . '/books/' . $filename;
+            $path = 'books/' . $filename;
+            Storage::disk('r2')->put($path, file_get_contents($file));
+            $data['file_path'] = rtrim(config('filesystems.disks.r2.url'), '/') . '/' . $path;
         }
 
         if ($cover) {
             $covername = time() . '_cover_' . uniqid() . '.' . $cover->getClientOriginalExtension();
-            Storage::disk('r2')->putFileAs('covers', $cover, $covername);
-            $data['cover_image'] = rtrim(config('filesystems.disks.r2.url'), '/') . '/covers/' . $covername;
+            $coverPath = 'covers/' . $covername;
+            Storage::disk('r2')->put($coverPath, file_get_contents($cover));
+            $data['cover_image'] = rtrim(config('filesystems.disks.r2.url'), '/') . '/' . $coverPath;
         }
 
         return $this->bookRepository->create($data);
@@ -51,12 +53,7 @@ class BookService
 
     public function getBookById($id)
     {
-        return \App\Models\Book::with([
-            'category',
-            'uploader' => function($query) {
-                $query->withCount(['documents', 'books']);
-            }
-        ])->withCount(['favorites', 'likes'])->findOrFail($id);
+        return $this->bookRepository->findById($id, ['*'], ['category', 'uploader']);
     }
 
     public function updateBook($id, array $data)

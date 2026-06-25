@@ -86,7 +86,7 @@ export default function AdminCategories() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500">System Architecture</p>
-          <h1 className="text-4xl font-black text-white tracking-tighter">Classification Hub</h1>
+          <h1 className="text-4xl font-black text-white tracking-tighter">Category Management</h1>
           <p className="text-[14px] font-medium text-slate-500">Define and moderate resource category nodes for global orchestration.</p>
         </div>
         <div className="flex items-center gap-3">
@@ -109,7 +109,7 @@ export default function AdminCategories() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Classification Title</label>
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Category Title</label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -137,7 +137,7 @@ export default function AdminCategories() {
 
             <div className="flex flex-col gap-3 pt-4">
               <button className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-emerald-950/20 flex items-center justify-center gap-2 border border-emerald-400/30">
-                <Save size={14} /> {activeCategory ? 'Commit Changes' : 'Initialize Classification'}
+                <Save size={14} /> {activeCategory ? 'Commit Changes' : 'Add New Category'}
               </button>
               {activeCategory && (
                 <button type="button" onClick={resetForm} className="w-full py-4 bg-slate-950 border border-slate-800 text-slate-500 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:text-white transition-all">

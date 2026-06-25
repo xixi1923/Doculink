@@ -38,7 +38,12 @@ export default function SubscriptionVerify() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    api.get('/subscription/status').then(res => setStatus(res.data))
+    api.get('/subscription/status').then(res => {
+      setStatus(res.data)
+      if (res.data?.latest_request?.status === 'pending') {
+        setStep(3)
+      }
+    })
   }, [])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,6 +136,23 @@ export default function SubscriptionVerify() {
                 {/* STEP 1: Select Plan */}
                 {step === 1 && (
                     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-500">
+                        {status?.latest_request?.status === 'rejected' && (
+                            <div className="p-6 bg-rose-50 border border-rose-100 rounded-[2rem] flex items-start gap-4 text-rose-600">
+                                <AlertCircle className="shrink-0 mt-0.5" size={24} />
+                                <div>
+                                    <p className="text-sm font-black uppercase tracking-tight">Payment Audit Rejected</p>
+                                    <p className="text-xs font-medium opacity-80 mt-1 leading-relaxed">
+                                        Your previous submission was not approved by the auditor. Please ensure you submit a valid, clear screenshot of the transaction.
+                                    </p>
+                                    {status.latest_request.admin_note && (
+                                        <div className="mt-3 p-3 bg-white/50 rounded-xl border border-rose-200">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-rose-400 mb-1">Auditor Note:</p>
+                                            <p className="text-xs italic font-bold">"{status.latest_request.admin_note}"</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                         <div className="text-center">
                             <h2 className="text-2xl font-black text-slate-900 tracking-tight">Choose your Protocol</h2>
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Select a membership duration</p>

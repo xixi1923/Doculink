@@ -170,7 +170,7 @@ export default function MyProfile(): React.JSX.Element | null {
               <BarChart3 size={15} /> Analytics Data
             </button>
             <button onClick={handleLogout} className="w-full text-left px-4 py-3 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-50 flex items-center gap-2 transition-all">
-              <LogOut size={15} /> Terminate Session
+              <LogOut size={15} /> Logout Account
             </button>
           </div>
         </div>
@@ -188,7 +188,7 @@ export default function MyProfile(): React.JSX.Element | null {
             {[
               { id: 'uploads', label: 'My Uploads', count: (user.documents?.length || 0) + (user.books?.length || 0) },
               { id: 'fav_docs', label: 'Saved Docs', count: user.favorites?.filter((f: any) => f.document_id).length || 0 },
-              { id: 'fav_books', label: 'Library', count: user.favorites?.filter((f: any) => f.book_id).length || 0 },
+              { id: 'fav_books', label: 'Saved Books', count: user.favorites?.filter((f: any) => f.book_id).length || 0 },
             ].map(tab => (
               <button
                 key={tab.id}

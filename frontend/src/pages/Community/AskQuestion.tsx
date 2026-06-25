@@ -190,7 +190,7 @@ export default function AskQuestion(): React.JSX.Element {
                 <h4 className="text-xs font-black uppercase tracking-wider">Fast Response Rates</h4>
               </div>
               <p className="text-[11px] text-slate-400 leading-normal font-light">
-                Over <strong>82%</strong> of structured code and STEM foundation questions logged into the DocuLink matrix receive structural tracking support within the first 4 hours of submission.
+                Over <strong>82%</strong> of structured code and STEM foundation questions logged into the DocuLink hub receive structural tracking support within the first 4 hours of submission.
               </p>
             </div>
           </div>

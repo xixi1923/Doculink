@@ -41,6 +41,7 @@ export default function UploadDocument(): React.JSX.Element {
     publication_year: '',
     isbn: '',
     author: '',
+    book_type: 'free',
   })
   const [file, setFile] = useState<File | null>(null)
   const [cover, setCover] = useState<File | null>(null)
@@ -290,6 +291,17 @@ export default function UploadDocument(): React.JSX.Element {
                           placeholder="e.g. 2024"
                         />
                       </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Access Tier</label>
+                        <select
+                          value={formData.book_type}
+                          onChange={e => setFormData({...formData, book_type: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-600/20 appearance-none"
+                        >
+                          <option value="free">Free Access</option>
+                          <option value="premium">Subscription Elite</option>
+                        </select>
+                      </div>
                     </>
                   ) : (
                     <>
@@ -325,13 +337,13 @@ export default function UploadDocument(): React.JSX.Element {
                </div>
 
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Abstract / Description</label>
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Abstract & Overview (Description)</label>
                   <textarea
                     rows={4}
                     value={formData.description}
                     onChange={e => setFormData({...formData, description: e.target.value})}
                     className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none resize-none focus:ring-2 focus:ring-teal-600/20"
-                    placeholder="Provide a brief summary of the contents..."
+                    placeholder="Provide a brief summary and overview of the contents..."
                   />
                </div>
 

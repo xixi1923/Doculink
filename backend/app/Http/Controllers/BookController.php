@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Book;
 use App\Models\Category;
+use App\Models\Favorite;
+use App\Models\Comment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -49,12 +51,24 @@ class BookController extends Controller
 
     public function show($idOrSlug)
     {
-        $book = Book::with(['category', 'uploader'])
+        $book = Book::with(['category', 'uploader', 'comments' => function($q) {
+            $q->whereNull('parent_id')->with(['user', 'replies.user'])->latest();
+        }])
             ->where('id', $idOrSlug)
             ->orWhere('slug', $idOrSlug)
             ->firstOrFail();
 
         $book->increment('view_count');
+
+        // Log the view/read
+        if (Auth::guard('sanctum')->check()) {
+            \App\Models\DownloadLog::create([
+                'user_id' => Auth::guard('sanctum')->id(),
+                'book_id' => $book->id,
+                'action_type' => 'read',
+                'downloaded_at' => now(),
+            ]);
+        }
 
         // Related books
         $related = Book::where('category_id', $book->category_id)
@@ -63,9 +77,17 @@ class BookController extends Controller
             ->limit(4)
             ->get();
 
+        $is_favorited = false;
+        if (Auth::guard('sanctum')->check()) {
+            $is_favorited = Favorite::where('user_id', Auth::guard('sanctum')->id())
+                ->where('book_id', $book->id)
+                ->exists();
+        }
+
         return response()->json([
             'book' => $book,
-            'related' => $related
+            'related' => $related,
+            'is_favorited' => $is_favorited
         ]);
     }
 
@@ -84,6 +106,7 @@ class BookController extends Controller
                 'file_path' => 'required|string',
                 'file_size' => 'nullable|string',
                 'page_count' => 'nullable',
+                'description' => 'nullable|string',
             ]);
 
             if ($validator->fails()) {
@@ -122,6 +145,7 @@ class BookController extends Controller
                 'pdf_url' => 'nullable|string',
                 'file_path' => 'nullable|string',
                 'page_count' => 'nullable',
+                'description' => 'nullable|string',
             ]);
 
             if ($validator->fails()) {
@@ -141,6 +165,27 @@ class BookController extends Controller
             \Illuminate\Support\Facades\Log::error('Book Update Error: ' . $e->getMessage());
             return response()->json(['message' => 'Internal Server Error', 'error' => $e->getMessage()], 500);
         }
+    }
+
+    public function comment(Request $request, $id)
+    {
+        $request->validate([
+            'content' => 'required|string',
+            'parent_id' => 'nullable|exists:comments,id'
+        ]);
+
+        $book = Book::findOrFail($id);
+
+        $comment = $book->comments()->create([
+            'user_id' => Auth::id(),
+            'content' => $request->content,
+            'parent_id' => $request->parent_id
+        ]);
+
+        return response()->json([
+            'message' => 'Comment added successfully',
+            'comment' => $comment->load('user')
+        ]);
     }
 
     public function destroy($id)
@@ -163,6 +208,27 @@ class BookController extends Controller
         return Category::all();
     }
 
+    public function logs()
+    {
+        $logs = \App\Models\DownloadLog::with(['user', 'book', 'document'])
+            ->whereNotNull('book_id')
+            ->latest('downloaded_at')
+            ->paginate(50);
+
+        $total_reads = \App\Models\DownloadLog::whereNotNull('book_id')->where('action_type', 'read')->count();
+        $total_downloads = \App\Models\DownloadLog::whereNotNull('book_id')->where('action_type', 'download')->count();
+        $unique_users = \App\Models\DownloadLog::whereNotNull('book_id')->distinct('user_id')->count('user_id');
+
+        return response()->json([
+            'logs' => $logs,
+            'stats' => [
+                'total_reads' => $total_reads,
+                'total_downloads' => $total_downloads,
+                'unique_users' => $unique_users
+            ]
+        ]);
+    }
+
     public function download($id)
     {
         $book = Book::findOrFail($id);
@@ -173,6 +239,15 @@ class BookController extends Controller
         }
 
         $book->increment('download_count');
+
+        // Log the download
+        \App\Models\DownloadLog::create([
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+            'action_type' => 'download',
+            'downloaded_at' => now(),
+        ]);
+
         // Logic to return file download
         return Storage::disk('r2')->download($book->file_path, \Illuminate\Support\Str::slug($book->title) . '.pdf');
     }

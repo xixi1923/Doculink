@@ -14,6 +14,8 @@ export default function AdminBooks() {
   const [filterCategory, setFilterCategory] = useState('')
   const [categories, setCategories] = useState<any[]>([])
   const [universities, setUniversities] = useState<any[]>([])
+  const [page, setPage] = useState(1)
+  const [lastPage, setLastPage] = useState(1)
 
   // Form State
   const [showModal, setShowModal] = useState(false)
@@ -59,13 +61,17 @@ export default function AdminBooks() {
   const fetchBooks = async () => {
     setLoading(true)
     try {
-      const response = await api.get('/admin/books')
+      const response = await api.get(`/admin/books?page=${page}`)
       setBooks(response.data.data || response.data || [])
+      setLastPage(response.data.last_page || 1)
     } catch (error) { console.error(error) } finally { setLoading(false) }
   }
 
   useEffect(() => {
     fetchBooks()
+  }, [page])
+
+  useEffect(() => {
     api.get('/categories').then(res => setCategories(Array.isArray(res.data) ? res.data : []))
     api.get('/universities').then(res => setUniversities(Array.isArray(res.data) ? res.data : []))
   }, [])
@@ -172,14 +178,14 @@ export default function AdminBooks() {
       {/* Top Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800/80 pb-5">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Inventory Archive</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Book Management</h1>
           <p className="text-sm text-slate-400 mt-1">Audit system storage nodes, curate assets, or manage digital library metadata.</p>
         </div>
         <button
           onClick={() => { resetForm(); setShowModal(true); }}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#00b289] hover:bg-[#009b76] px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all active:scale-[0.98]"
         >
-          <Plus size={16} /> Add Entry Node
+          <Plus size={16} /> Add New Book
         </button>
       </div>
 
@@ -206,6 +212,9 @@ export default function AdminBooks() {
             {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
           </select>
         </div>
+        <div className="flex items-center gap-2 px-4 py-2 bg-[#0b0f19] border border-slate-800 rounded-lg">
+           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nodes: <span className="text-[#00b289]">{filteredBooks.length}</span></span>
+        </div>
       </div>
 
       {/* Main Grid View */}
@@ -215,61 +224,108 @@ export default function AdminBooks() {
           <p className="text-xs font-medium text-slate-500 tracking-wider">Syncing secure database channels...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredBooks.map((book) => (
-            <div key={book.id} className="bg-[#111827] border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between shadow-md hover:border-slate-700/80 transition-all relative group overflow-hidden">
-              {book.book_type === 'premium' && (
-                <div className="absolute top-0 right-0 bg-[#00b289] text-white px-3 py-1 rounded-bl-lg text-[10px] font-bold uppercase tracking-wider shadow-sm">
-                  Premium
-                </div>
-              )}
+        <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredBooks.map((book) => (
+                    <div key={book.id} className="bg-[#111827] border border-slate-800/80 rounded-xl p-5 flex flex-col justify-between shadow-md hover:border-slate-700/80 transition-all relative group overflow-hidden">
+                    {book.book_type === 'premium' && (
+                        <div className="absolute top-0 right-0 bg-[#00b289] text-white px-3 py-1 rounded-bl-lg text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                        Premium
+                        </div>
+                    )}
 
-              <div className="flex gap-4">
-                <div className="w-20 h-28 rounded-lg overflow-hidden bg-[#0b0f19] shrink-0 border border-slate-800 flex items-center justify-center shadow-inner">
-                  {book.cover_image && !imgErrors[book.id] ? (
-                    <img src={getImageUrl(book.cover_image)} className="w-full h-full object-cover" alt={book.title} onError={() => setImgErrors(prev => ({ ...prev, [book.id]: true }))} />
-                  ) : (
-                    <BookOpen size={24} className="text-slate-600" />
-                  )}
-                </div>
+                    <div className="flex gap-4">
+                        <div className="w-20 h-28 rounded-lg overflow-hidden bg-[#0b0f19] shrink-0 border border-slate-800 flex items-center justify-center shadow-inner">
+                        {book.cover_image && !imgErrors[book.id] ? (
+                            <img src={getImageUrl(book.cover_image)} className="w-full h-full object-cover" alt={book.title} onError={() => setImgErrors(prev => ({ ...prev, [book.id]: true }))} />
+                        ) : (
+                            <BookOpen size={24} className="text-slate-600" />
+                        )}
+                        </div>
 
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-base text-white truncate group-hover:text-[#00b289] transition-colors">{book.title}</h3>
-                  <p className="text-xs text-slate-400 mt-0.5 truncate">by {book.author}</p>
+                        <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-base text-white truncate group-hover:text-[#00b289] transition-colors">{book.title}</h3>
+                        <p className="text-xs text-slate-400 mt-0.5 truncate">by {book.author}</p>
 
-                  <div className="flex flex-wrap gap-1.5 mt-3">
-                    <span className="px-2 py-0.5 rounded bg-[#1f2937] text-slate-300 text-[11px] font-medium border border-slate-700">
-                      {book.category?.name || 'General'}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
-                      book.status === 'published' ? 'bg-green-950/40 text-[#00b289] border-green-900/60' : 'bg-[#1f2937] text-slate-400 border-slate-700'
-                    }`}>
-                      {book.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                            <span className="px-2 py-0.5 rounded bg-[#1f2937] text-slate-300 text-[11px] font-medium border border-slate-700">
+                            {book.category?.name || 'General'}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
+                            book.book_type === 'premium' ? 'bg-amber-950/40 text-amber-500 border-amber-900/60' : 'bg-slate-900 text-slate-500 border-slate-800'
+                            }`}>
+                            {book.book_type === 'premium' ? 'Elite Node' : 'Standard'}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
+                            book.status === 'published' ? 'bg-green-950/40 text-[#00b289] border-green-900/60' : 'bg-[#1f2937] text-slate-400 border-slate-700'
+                            }`}>
+                            {book.status}
+                            </span>
+                        </div>
+                        </div>
+                    </div>
 
-              <div className="flex items-center justify-between mt-5 pt-3 border-t border-slate-800/60">
-                <div className="flex gap-1">
-                  <button onClick={() => handleEdit(book)} className="p-1.5 rounded-md text-slate-400 hover:text-[#00b289] hover:bg-[#1f2937] transition-colors"><Edit3 size={16} /></button>
-                  <button onClick={() => handleDelete(book.id)} className="p-1.5 rounded-md text-slate-400 hover:text-red-400 hover:bg-[#1f2937] transition-colors"><Trash2 size={16} /></button>
-                </div>
-                {book.pdf_url && (
-                  <a href={book.pdf_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-[#00b289] hover:text-[#009b76]">
-                    View Asset <ExternalLink size={12} />
-                  </a>
-                )}
-              </div>
+                    <div className="flex items-center justify-between mt-5 pt-3 border-t border-slate-800/60">
+                        <div className="flex gap-1">
+                        <button onClick={() => handleEdit(book)} className="p-1.5 rounded-md text-slate-400 hover:text-[#00b289] hover:bg-[#1f2937] transition-colors"><Edit3 size={16} /></button>
+                        <button onClick={() => handleDelete(book.id)} className="p-1.5 rounded-md text-slate-400 hover:text-red-400 hover:bg-[#1f2937] transition-colors"><Trash2 size={16} /></button>
+                        </div>
+                        {book.pdf_url && (
+                        <a href={book.pdf_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-[#00b289] hover:text-[#009b76]">
+                            View Asset <ExternalLink size={12} />
+                        </a>
+                        )}
+                    </div>
+                    </div>
+                ))}
             </div>
-          ))}
 
-          {filteredBooks.length === 0 && (
-            <div className="col-span-full py-16 text-center bg-[#111827] border border-slate-800 rounded-xl shadow-sm">
-              <LayoutGrid size={40} className="text-slate-700 mx-auto mb-3" />
-              <p className="text-slate-400 font-medium text-sm">No storage registry modules discovered.</p>
-            </div>
-          )}
+            {lastPage > 1 && (
+                <div className="mt-8 flex items-center justify-center gap-2">
+                    <button
+                        disabled={page === 1}
+                        onClick={() => setPage(p => p - 1)}
+                        className="px-4 py-2 bg-[#111827] border border-slate-800 rounded-xl text-[11px] font-black text-slate-400 hover:text-white disabled:opacity-20 transition-all"
+                    >
+                        « Previous
+                    </button>
+
+                    {[...Array(lastPage)].map((_, i) => {
+                        const pageNum = i + 1;
+                        if (pageNum === 1 || pageNum === lastPage || (pageNum >= page - 1 && pageNum <= page + 1)) {
+                            return (
+                                <button
+                                    key={pageNum}
+                                    onClick={() => setPage(pageNum)}
+                                    className={`w-10 h-10 rounded-xl text-[11px] font-black transition-all ${
+                                        page === pageNum ? 'bg-[#00b289] text-white shadow-xl' : 'bg-[#111827] text-slate-500 border border-slate-800 hover:text-white'
+                                    }`}
+                                >
+                                    {pageNum}
+                                </button>
+                            );
+                        } else if (pageNum === page - 2 || pageNum === page + 2) {
+                            return <span key={pageNum} className="text-slate-700">...</span>;
+                        }
+                        return null;
+                    })}
+
+                    <button
+                        disabled={page === lastPage}
+                        onClick={() => setPage(p => p + 1)}
+                        className="px-4 py-2 bg-[#111827] border border-slate-800 rounded-xl text-[11px] font-black text-slate-400 hover:text-white disabled:opacity-20 transition-all"
+                    >
+                        Next »
+                    </button>
+                </div>
+            )}
+        </>
+      )}
+
+      {filteredBooks.length === 0 && !loading && (
+        <div className="py-16 text-center bg-[#111827] border border-slate-800 rounded-xl shadow-sm">
+          <LayoutGrid size={40} className="text-slate-700 mx-auto mb-3" />
+          <p className="text-slate-400 font-medium text-sm">No storage registry modules discovered.</p>
         </div>
       )}
 
@@ -281,7 +337,7 @@ export default function AdminBooks() {
             {/* Modal Header & Progress Tracker */}
             <div className="px-8 pt-6 pb-4 border-b border-slate-800 shrink-0">
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-xl font-bold text-white tracking-tight">{activeBook ? 'Update Asset Core Structure' : 'Initialize Asset Entry'}</h2>
+                <h2 className="text-xl font-bold text-white tracking-tight">{activeBook ? 'Update Asset Core Structure' : 'Add New Book'}</h2>
                 <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"><X size={20} /></button>
               </div>
 
@@ -346,6 +402,10 @@ export default function AdminBooks() {
                     <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Lead Origin Author / Creator *</label>
                     <input required type="text" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} className="w-full bg-[#0b0f19] border border-slate-800 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#00b289]" placeholder="e.g. Dr. Sasa Hamamichi" />
                   </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Abstract & Overview (Description)</label>
+                    <textarea rows={4} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-[#0b0f19] border border-slate-800 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#00b289] resize-none" placeholder="Enter detailed manuscript summary and overview..." />
+                  </div>
                 </div>
               )}
 
@@ -354,12 +414,21 @@ export default function AdminBooks() {
                 <div className="space-y-5 max-w-2xl mx-auto py-4 animate-in fade-in duration-150">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Classification Category *</label>
+                      <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Book Category *</label>
                       <select required value={formData.category_id} onChange={e => setFormData({...formData, category_id: e.target.value})} className="w-full bg-[#0b0f19] border border-slate-800 rounded-lg px-4 py-3 text-sm text-slate-300 focus:outline-none focus:border-[#00b289]">
-                        <option value="">Choose Classification</option>
+                        <option value="">Choose Category</option>
                         {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                       </select>
                     </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Access Protocol (Type)</label>
+                      <select value={formData.book_type} onChange={e => setFormData({...formData, book_type: e.target.value})} className="w-full bg-[#0b0f19] border border-slate-800 rounded-lg px-4 py-3 text-sm text-slate-300 focus:outline-none focus:border-[#00b289]">
+                        <option value="free">Free Tier</option>
+                        <option value="premium">Subscription Elite</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Registry Security Status</label>
                       <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full bg-[#0b0f19] border border-slate-800 rounded-lg px-4 py-3 text-sm text-slate-300 focus:outline-none focus:border-[#00b289]">
@@ -367,12 +436,6 @@ export default function AdminBooks() {
                         <option value="draft">System Draft</option>
                         <option value="archived">Cold Storage</option>
                       </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">ISBN-13 Serial Identity</label>
-                      <input type="text" value={formData.isbn} onChange={e => setFormData({...formData, isbn: e.target.value})} className="w-full bg-[#0b0f19] border border-slate-800 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#00b289]" placeholder="978-..." />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Total Page Metrics</label>

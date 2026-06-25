@@ -50,7 +50,7 @@ export default function BooksBrowse() {
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl">
              <span className="px-4 py-1.5 bg-teal-500/20 border border-teal-500/30 rounded-full text-teal-400 text-[10px] font-black uppercase tracking-widest">
-                Digital Library Matrix
+                Resource Library
              </span>
              <h1 className="text-5xl md:text-6xl font-black mt-6 tracking-tight">Explore the <span className="text-teal-400">Knowledge</span> Archive.</h1>
              <p className="text-slate-400 text-lg mt-6 leading-relaxed max-w-2xl">
@@ -103,7 +103,7 @@ export default function BooksBrowse() {
                                             selectedType === type ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                                         }`}
                                     >
-                                        {type} {type === 'premium' && <Lock size={12} />}
+                                        {type === 'all' ? 'Learning Hub' : type} {type === 'premium' && <Lock size={12} />}
                                         {selectedType === type && <CheckCircle2 size={14} className="text-teal-400" />}
                                     </button>
                                 ))}
@@ -152,7 +152,7 @@ export default function BooksBrowse() {
             <main className="space-y-8">
                 <div className="flex items-center justify-between">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                        Found <span className="text-slate-950">{books.length}</span> resources in matrix
+                        Found <span className="text-slate-950">{books.length}</span> resources in Learning Hub
                     </p>
                 </div>
 
@@ -177,7 +177,7 @@ export default function BooksBrowse() {
                                         <div className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest backdrop-blur-md border ${
                                             book.book_type === 'premium' ? 'bg-amber-500/20 border-amber-500/30 text-amber-200' : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-200'
                                         }`}>
-                                            {book.book_type === 'premium' ? 'Premium 🔒' : 'Free Access'}
+                                            {book.book_type === 'premium' ? 'Subscription Elite' : 'Free Access'}
                                         </div>
                                     </div>
 
@@ -218,7 +218,7 @@ export default function BooksBrowse() {
                         <BookOpen size={64} className="mx-auto text-slate-100 mb-6" />
                         <h3 className="text-xl font-black text-slate-900">Zero Results Found.</h3>
                         <p className="text-slate-500 font-medium mt-2">Adjust your search parameters and try again.</p>
-                        <button onClick={() => { setSearch(''); setSelectedCategory(''); setSelectedType('all'); fetchBooks(); }} className="mt-8 text-teal-600 font-black uppercase tracking-widest text-[10px] hover:underline">Reset Matrix Filters</button>
+                        <button onClick={() => { setSearch(''); setSelectedCategory(''); setSelectedType('all'); fetchBooks(); }} className="mt-8 text-teal-600 font-black uppercase tracking-widest text-[10px] hover:underline">Reset Filters</button>
                     </div>
                 )}
             </main>

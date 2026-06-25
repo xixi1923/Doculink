@@ -22,6 +22,8 @@ class DashboardController extends Controller
             'documents_count' => Document::count(),
             'categories_count' => Category::count(),
             'books_count' => Book::count(),
+            'requests_count' => \App\Models\BookRequest::where('status', 'pending')->count(),
+            'pending_subscriptions' => Subscription::where('status', 'pending')->count(),
             'universities_count' => University::count(),
             'approved_documents' => Document::where('status', 'approved')->count(),
             'pending_documents' => Document::where('status', 'pending')->count(),
@@ -48,10 +50,68 @@ class DashboardController extends Controller
             ->limit(5)
             ->get(['id', 'title', 'view_count', 'author']);
 
+        $pending_notifications = collect([]);
+
+        // Add recent comments
+        $recent_comments = \App\Models\Comment::with(['user', 'commentable'])->latest()->limit(5)->get()->map(function($item) {
+            $bookTitle = $item->commentable->title ?? 'Resource';
+            return [
+                'id' => $item->id,
+                'type' => 'comment',
+                'title' => 'New Comment',
+                'description' => ($item->user->name ?? 'User') . ' commented on "' . $bookTitle . '"',
+                'link' => $item->commentable_type === 'App\\Models\\Book'
+                    ? '/books/' . ($item->commentable->slug ?? $item->commentable_id)
+                    : '/documents/' . $item->commentable_id,
+                'created_at' => $item->created_at
+            ];
+        });
+        $pending_notifications = $pending_notifications->concat($recent_comments);
+
+        // Add pending book requests
+        $book_requests = \App\Models\BookRequest::with('user')->where('status', 'pending')->latest()->limit(3)->get()->map(function($item) {
+            return [
+                'id' => $item->id,
+                'type' => 'book_request',
+                'title' => 'New Book Request',
+                'description' => ($item->user->name ?? 'User') . ' requested "' . $item->title . '"',
+                'link' => '/admin/book-requests',
+                'created_at' => $item->created_at
+            ];
+        });
+        $pending_notifications = $pending_notifications->concat($book_requests);
+
+        // Add pending subscriptions
+        $subs = Subscription::with('user')->where('status', 'pending')->latest()->limit(3)->get()->map(function($item) {
+            return [
+                'id' => $item->id,
+                'type' => 'subscription',
+                'title' => 'Payment Verification',
+                'description' => ($item->user->name ?? 'User') . ' submitted a payment for ' . ($item->plan_type ?? 'Elite Node'),
+                'link' => '/admin/subscriptions',
+                'created_at' => $item->created_at
+            ];
+        });
+        $pending_notifications = $pending_notifications->concat($subs);
+
+        // Add pending documents
+        $docs = Document::with('user')->where('status', 'pending')->latest()->limit(3)->get()->map(function($item) {
+            return [
+                'id' => $item->id,
+                'type' => 'document',
+                'title' => 'Document Audit',
+                'description' => ($item->user->name ?? 'User') . ' uploaded "' . $item->title . '"',
+                'link' => '/admin/documents',
+                'created_at' => $item->created_at
+            ];
+        });
+        $pending_notifications = $pending_notifications->concat($docs);
+
         return Response::json([
             'stats' => $stats,
             'recent_documents' => $recent_documents,
             'top_viewed_books' => $top_viewed_books,
+            'notifications' => $pending_notifications->sortByDesc('created_at')->values()->all()
         ]);
     }
 }

@@ -19,6 +19,11 @@ return new class extends Migration
             $table->string('publisher')->nullable();
             $table->year('publication_year')->nullable();
             $table->foreignId('category_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('university_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('department_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('education_level_id')->nullable()->constrained()->onDelete('set null');
+            $table->string('subject')->nullable();
+            $table->string('resource_level')->nullable();
             $table->foreignId('uploaded_by')->constrained('users')->onDelete('cascade');
             $table->integer('view_count')->default(0);
             $table->integer('download_count')->default(0);

@@ -19,7 +19,7 @@ export default function CreateMenu() {
 
   const items = [
     { label: 'Upload Document', icon: FileText, path: '/upload', color: 'text-blue-500' },
-    { label: 'Ask Question', icon: MessageSquare, path: '/community/ask', color: 'text-purple-500' },
+    { label: 'Community Feed', icon: MessageSquare, path: '/community', color: 'text-purple-500' },
   ]
 
   return (

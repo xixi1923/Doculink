@@ -74,7 +74,11 @@ export default function QuestionDetail() {
                 <Link to={question.user?.username ? `/profile/${question.user.username}` : `/user/${question.user?.id}`} className="flex items-center gap-4 group">
                   <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-700 group-hover:border-teal-500 transition-all shrink-0">
                     {question.user?.avatar ? (
-                      <img src={question.user.avatar} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                      <img
+                        src={question.user.avatar}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-teal-50 text-teal-600 font-bold">
                         {question.user?.name?.charAt(0) || 'U'}
@@ -103,6 +107,17 @@ export default function QuestionDetail() {
              <div className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed text-base font-medium">
                {question.content}
              </div>
+
+             {question.image_path && (
+                <div className="mt-8 rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800">
+                    <img
+                        src={question.image_path}
+                        alt="Question Reference"
+                        className="w-full h-auto object-contain"
+                        referrerPolicy="no-referrer"
+                    />
+                </div>
+             )}
            </div>
         </article>
 
@@ -123,7 +138,11 @@ export default function QuestionDetail() {
                       <Link to={ans.user?.username ? `/profile/${ans.user.username}` : `/user/${ans.user?.id}`} className="flex items-center gap-3 group">
                         <div className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-700 group-hover:border-teal-500 transition-all shrink-0">
                           {ans.user?.avatar ? (
-                            <img src={ans.user.avatar} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                            <img
+                              src={ans.user.avatar}
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-teal-50 text-teal-600 text-[10px] font-bold">
                               {ans.user?.name?.charAt(0) || 'U'}

@@ -358,7 +358,7 @@ export default function DocumentDetail(): React.JSX.Element {
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center gap-1">
                   <Eye size={16} className="text-slate-400" />
-                  <p className="text-sm font-black text-slate-900">{doc.user?.stats?.total_views || doc.view_count || 0}</p>
+                  <p className="text-sm font-black text-slate-900">{doc.view_count || 0}</p>
                   <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Views</p>
                 </div>
 
@@ -367,19 +367,19 @@ export default function DocumentDetail(): React.JSX.Element {
                   className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-1 ${isLiked ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-slate-50/50 border-slate-100 text-slate-400 hover:bg-slate-100'}`}
                 >
                   <ThumbsUp size={16} className={isLiked ? 'fill-current' : ''} />
-                  <p className={`text-sm font-black ${isLiked ? 'text-rose-600' : 'text-slate-900'}`}>{doc.user?.stats?.total_likes || likesCount}</p>
+                  <p className={`text-sm font-black ${isLiked ? 'text-rose-600' : 'text-slate-900'}`}>{likesCount}</p>
                   <p className="text-[8px] font-bold uppercase tracking-widest">Likes</p>
                 </button>
 
                 <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center gap-1">
                   <MessageSquare size={16} className="text-slate-400" />
-                  <p className="text-sm font-black text-slate-900">{doc.user?.stats?.total_comments || doc.comments_count || 0}</p>
+                  <p className="text-sm font-black text-slate-900">{doc.comments_count || 0}</p>
                   <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Comments</p>
                 </div>
 
                 <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center gap-1">
                   <Download size={16} className="text-slate-400" />
-                  <p className="text-sm font-black text-slate-900">{doc.user?.stats?.total_downloads || doc.download_count || 0}</p>
+                  <p className="text-sm font-black text-slate-900">{doc.download_count || 0}</p>
                   <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Downloads</p>
                 </div>
               </div>

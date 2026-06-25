@@ -34,6 +34,15 @@ class BookService
 
     public function createBook(array $data, $file, $cover = null)
     {
+        // Handle Department
+        if (empty($data['department_id']) && !empty($data['department_full_name'])) {
+            $department = \App\Models\Department::firstOrCreate(
+                ['department_full_name' => $data['department_full_name']],
+                ['department_short_name' => $data['department_short_name'] ?? null]
+            );
+            $data['department_id'] = $department->id;
+        }
+
         if ($file) {
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $path = 'books/' . $filename;
@@ -53,7 +62,16 @@ class BookService
 
     public function getBookById($id)
     {
-        return $this->bookRepository->findById($id, ['*'], ['category', 'uploader']);
+        $book = $this->bookRepository->findById($id, ['*'], ['category', 'uploader']);
+        $book->loadCount(['favorites', 'likes', 'comments']);
+
+        // Add related books
+        $book->related_books = \App\Models\Book::where('category_id', $book->category_id)
+            ->where('id', '!=', $id)
+            ->limit(5)
+            ->get();
+
+        return $book;
     }
 
     public function updateBook($id, array $data)

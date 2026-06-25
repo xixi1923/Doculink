@@ -155,6 +155,7 @@ export default function MyProfile(): React.JSX.Element | null {
                 className="w-full h-full object-cover"
                 alt={user.name}
                 onError={() => setImageError(true)}
+                referrerPolicy="no-referrer"
               />
             ) : (
               <span className="text-4xl font-light text-slate-400">{initials}</span>
@@ -220,7 +221,7 @@ export default function MyProfile(): React.JSX.Element | null {
           <div className="border border-slate-200 dark:border-gray-800 rounded-lg p-4 bg-white dark:bg-gray-900 shadow-sm flex items-center gap-4">
             <div className="w-8 h-8 rounded-full bg-slate-100 overflow-hidden shrink-0 flex items-center justify-center">
               {user.avatar && !imageError ? (
-                <img src={user.avatar} className="w-full h-full object-cover" />
+                <img src={user.avatar} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
                 <span className="text-xs text-slate-400">{initials}</span>
               )}
@@ -310,7 +311,7 @@ export default function MyProfile(): React.JSX.Element | null {
                     <Link to={f.follower?.username ? `/profile/${f.follower.username}` : `/user/${f.follower_id}`} key={f.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-transparent hover:border-slate-200 transition-all">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 font-bold text-xs overflow-hidden">
-                          {f.follower?.avatar ? <img src={f.follower.avatar} className="w-full h-full object-cover" /> : f.follower?.name?.[0]}
+                          {f.follower?.avatar ? <img src={f.follower.avatar} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : f.follower?.name?.[0]}
                         </div>
                         <div>
                           <p className="text-xs font-semibold text-slate-900 dark:text-white">{f.follower?.name}</p>
@@ -333,7 +334,7 @@ export default function MyProfile(): React.JSX.Element | null {
                       {/* Standard Document Icon Placeholder Block Frame */}
                       <div className="w-14 h-18 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded p-0.5 shadow-sm shrink-0 flex flex-col justify-between overflow-hidden">
                         {item.thumbnail || item.cover_image ? (
-                          <img src={item.thumbnail || item.cover_image} className="w-full h-full object-cover rounded" alt="" />
+                          <img src={item.thumbnail || item.cover_image} className="w-full h-full object-cover rounded" alt="" referrerPolicy="no-referrer" />
                         ) : (
                           <div className="p-1 h-full flex flex-col justify-between">
                             <div className="space-y-1">

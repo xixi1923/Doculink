@@ -19,6 +19,11 @@ class Book extends Model
         'publisher',
         'publication_year',
         'category_id',
+        'university_id',
+        'department_id',
+        'education_level_id',
+        'subject',
+        'resource_level',
         'uploaded_by',
         'view_count',
         'download_count',
@@ -27,6 +32,21 @@ class Book extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function university()
+    {
+        return $this->belongsTo(University::class);
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function educationLevel()
+    {
+        return $this->belongsTo(EducationLevel::class);
     }
 
     public function uploader()
@@ -42,5 +62,10 @@ class Book extends Model
     public function likes()
     {
         return $this->hasMany(Like::class, 'book_id');
+    }
+
+    public function comments()
+    {
+        return $this->morphMany(Comment::class, 'commentable');
     }
 }

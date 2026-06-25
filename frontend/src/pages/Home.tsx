@@ -240,7 +240,7 @@ export default function Home(): React.JSX.Element {
 
                     {/* Aspect Document Face Frame */}
                     <div className="relative aspect-[4/3] overflow-hidden bg-slate-50">
-                      <img src={getDocumentImage(doc.id)} alt={doc.title} className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700" crossOrigin="anonymous" />
+                      <img src={getDocumentImage(doc.id)} alt={doc.title} className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700" referrerPolicy="no-referrer" />
                       <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-2.5 py-0.5 rounded-md text-[10px] font-bold text-teal-700 uppercase tracking-wider shadow-sm border border-slate-100">
                         {doc.category?.name || 'Document'}
                       </div>
@@ -267,7 +267,7 @@ export default function Home(): React.JSX.Element {
                       <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-4">
                         <Link to={doc.user?.username ? `/profile/${doc.user.username}` : `/user/${doc.user?.id}`} className="flex items-center gap-1.5 min-w-0 group/user">
                           <div className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-[11px] font-bold text-slate-700 shrink-0 group-hover/user:bg-teal-500 group-hover/user:text-white transition-all overflow-hidden">
-                             {doc.user?.avatar ? <img src={doc.user.avatar} className="w-full h-full object-cover" crossOrigin="anonymous" /> : doc.user?.name?.charAt(0) || 'U'}
+                             {doc.user?.avatar ? <img src={doc.user.avatar} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : doc.user?.name?.charAt(0) || 'U'}
                           </div>
                           <span className="text-xs font-bold text-slate-700 truncate group-hover/user:text-teal-600 transition-colors">{doc.user?.name || 'Anonymous'}</span>
                         </Link>
@@ -379,7 +379,7 @@ export default function Home(): React.JSX.Element {
 
                 <div className="flex -space-x-2.5">
                    {[1,2,3,4,5].map((i) => (
-                      <img key={i} src={`https://i.pravatar.cc/150?u=${i+20}`} className="w-7 h-7 rounded-full border-2 border-[#0b1329] object-cover shadow-sm" alt="User network member" />
+                      <img key={i} src={`https://i.pravatar.cc/150?u=${i+20}`} className="w-7 h-7 rounded-full border-2 border-[#0b1329] object-cover shadow-sm" alt="User network member" referrerPolicy="no-referrer" />
                    ))}
                 </div>
                 <p className="text-[11px] font-light text-slate-400 max-w-xs leading-normal">

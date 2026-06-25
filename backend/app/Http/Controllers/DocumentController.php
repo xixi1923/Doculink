@@ -29,13 +29,24 @@ class DocumentController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
             'category_id' => 'required|exists:categories,id',
             'university_id' => 'nullable|exists:universities,id',
+            'department_id' => 'nullable|exists:departments,id',
+            'department_full_name' => 'nullable|string|max:255',
+            'department_short_name' => 'nullable|string|max:255',
+            'education_level_id' => 'nullable|exists:education_levels,id',
             'resource_level' => 'nullable|string|max:255',
+            'subject' => 'nullable|string|max:255',
+            'tags' => 'nullable|string',
             'file' => 'required|file|mimes:pdf,docx,pptx,jpg,jpeg,png|max:51200',
         ]);
 
-        $data = $request->only(['title', 'description', 'subject', 'category_id', 'university_id', 'resource_level', 'tags']);
+        $data = $request->only([
+            'title', 'description', 'subject', 'category_id', 'university_id',
+            'department_id', 'department_full_name', 'department_short_name',
+            'education_level_id', 'resource_level', 'tags'
+        ]);
         $data['user_id'] = Auth::id();
         $data['status'] = 'pending';
 
@@ -104,6 +115,14 @@ class DocumentController extends Controller
     {
         $document = $this->documentService->getDocumentDetails($id);
         $document->increment('download_count');
+
+        // Create download log
+        \App\Models\DownloadLog::create([
+            'user_id' => Auth::id(),
+            'document_id' => $id,
+            'downloaded_at' => now(),
+        ]);
+
         return response()->json(['url' => $document->file_path]);
     }
 

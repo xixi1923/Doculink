@@ -69,6 +69,15 @@ class DocumentService
 
     public function uploadDocument(array $data, $file)
     {
+        // Handle Department
+        if (empty($data['department_id']) && !empty($data['department_full_name'])) {
+            $department = \App\Models\Department::firstOrCreate(
+                ['department_full_name' => $data['department_full_name']],
+                ['department_short_name' => $data['department_short_name'] ?? null]
+            );
+            $data['department_id'] = $department->id;
+        }
+
         $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
 
         // Use putFileAs to ensure the filename is exactly what we want, not a subfolder

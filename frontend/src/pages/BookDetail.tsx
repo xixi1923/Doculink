@@ -196,28 +196,33 @@ export default function BookDetail() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center gap-1">
+                        <Eye size={16} className="text-slate-400" />
+                        <p className="text-sm font-black text-slate-900">{book.view_count || 0}</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Views</p>
+                    </div>
+
                     <button
                         onClick={handleLike}
-                        className={`p-3 rounded-2xl text-center border transition-all ${isLiked ? 'bg-rose-50 border-rose-100 text-rose-500' : 'bg-slate-50 border-slate-100 text-slate-400 hover:bg-slate-100'}`}
+                        className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-1 ${isLiked ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-slate-50/50 border-slate-100 text-slate-400 hover:bg-slate-100'}`}
                     >
-                        <div className="flex justify-center mb-1"><Heart size={16} fill={isLiked ? 'currentColor' : 'none'} /></div>
-                        <p className="text-xs font-black">{book.likes_count || 0}</p>
-                        <p className="text-[7px] font-black uppercase tracking-widest opacity-60">Reacts</p>
+                        <Heart size={16} className={isLiked ? 'fill-current' : ''} />
+                        <p className={`text-sm font-black ${isLiked ? 'text-rose-600' : 'text-slate-900'}`}>{book.likes_count || 0}</p>
+                        <p className="text-[8px] font-bold uppercase tracking-widest">Likes</p>
                     </button>
-                    <button className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-center text-slate-400 hover:bg-slate-100 transition-all">
-                        <div className="flex justify-center mb-1"><MessageSquare size={16} /></div>
-                        <p className="text-xs font-black text-slate-900">0</p>
-                        <p className="text-[7px] font-black uppercase tracking-widest opacity-60">Comments</p>
-                    </button>
-                    <button
-                        onClick={handleFavorite}
-                        className={`p-3 rounded-2xl text-center border transition-all ${isFavorited ? 'bg-amber-50 border-amber-100 text-amber-600 shadow-sm' : 'bg-slate-50 border-slate-100 text-slate-400 hover:bg-slate-100'}`}
-                    >
-                        <div className="flex justify-center mb-1"><Bookmark size={16} className={isFavorited ? 'fill-current' : ''} /></div>
-                        <p className="text-xs font-black text-slate-900">{book.favorites_count || 0}</p>
-                        <p className="text-[7px] font-black uppercase tracking-widest opacity-60">Saves</p>
-                    </button>
+
+                    <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center gap-1">
+                        <MessageSquare size={16} className="text-slate-400" />
+                        <p className="text-sm font-black text-slate-900">{book.comments_count || 0}</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Comments</p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center gap-1">
+                        <Download size={16} className="text-slate-400" />
+                        <p className="text-sm font-black text-slate-900">{book.download_count || 0}</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Downloads</p>
+                    </div>
                 </div>
 
                 <p className="text-[13px] text-slate-500 font-medium leading-relaxed">

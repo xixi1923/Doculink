@@ -10,7 +10,7 @@ class Question extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'slug', 'content', 'user_id', 'category_id', 'views_count'];
+    protected $fillable = ['title', 'slug', 'content', 'user_id', 'category_id', 'views', 'image_path', 'is_public'];
 
     protected static function boot()
     {

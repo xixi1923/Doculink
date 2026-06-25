@@ -18,6 +18,8 @@ class Document extends Model
         'file_size',
         'category_id',
         'university_id',
+        'department_id',
+        'education_level_id',
         'user_id',
         'subject',
         'resource_level',
@@ -40,6 +42,16 @@ class Document extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function educationLevel()
+    {
+        return $this->belongsTo(EducationLevel::class);
     }
 
     public function comments()

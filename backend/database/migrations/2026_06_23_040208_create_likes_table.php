@@ -11,10 +11,12 @@ return new class extends Migration
         Schema::create('likes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->morphs('likeable');
+            $table->foreignId('document_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('book_id')->nullable()->constrained()->onDelete('cascade');
             $table->timestamps();
 
-            $table->unique(['user_id', 'likeable_id', 'likeable_type']);
+            $table->unique(['user_id', 'document_id']);
+            $table->unique(['user_id', 'book_id']);
         });
     }
 

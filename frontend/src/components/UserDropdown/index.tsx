@@ -69,6 +69,7 @@ export default function UserDropdown() {
               alt={userName}
               className="w-full h-full object-cover"
               onError={() => setImageError(true)}
+              referrerPolicy="no-referrer"
             />
           ) : (
             <span>{initials}</span>

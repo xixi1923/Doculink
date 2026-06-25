@@ -1,0 +1,26 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use App\Models\EducationLevel;
+
+class EducationLevelSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $levels = [
+            ['category' => 'High School', 'name' => 'Grade 10'],
+            ['category' => 'High School', 'name' => 'Grade 11'],
+            ['category' => 'High School', 'name' => 'Grade 12'],
+            ['category' => 'University', 'name' => 'Associate Degree'],
+            ['category' => 'University', 'name' => 'Bachelor Degree'],
+            ['category' => 'University', 'name' => 'Master Degree'],
+            ['category' => 'University', 'name' => 'PhD'],
+        ];
+
+        foreach ($levels as $level) {
+            EducationLevel::updateOrCreate($level);
+        }
+    }
+}

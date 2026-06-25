@@ -5,6 +5,8 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\UniversityController;
+use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\EducationLevelController;
 use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\SocialController;
@@ -28,6 +30,8 @@ Route::post('/firebase-login', [FirebaseAuthController::class, 'login']);
 // Guest Access Routes (Read-only)
 Route::get('/universities', [UniversityController::class, 'index']);
 Route::get('/universities/{id}', [UniversityController::class, 'show']);
+Route::get('/departments', [DepartmentController::class, 'index']);
+Route::get('/education-levels', [EducationLevelController::class, 'index']);
 Route::get('/books', [BookController::class, 'index']);
 Route::get('/books/categories', [BookController::class, 'categories']);
 Route::get('/books/{id}', [BookController::class, 'show']);

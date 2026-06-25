@@ -49,11 +49,23 @@ class BookController extends Controller
             'title' => 'required|string|max:255',
             'author' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
+            'university_id' => 'nullable|exists:universities,id',
+            'department_id' => 'nullable|exists:departments,id',
+            'department_full_name' => 'nullable|string|max:255',
+            'department_short_name' => 'nullable|string|max:255',
+            'education_level_id' => 'nullable|exists:education_levels,id',
+            'resource_level' => 'nullable|string|max:255',
+            'subject' => 'nullable|string|max:255',
             'file' => 'required|file|mimes:pdf,epub|max:51200', // 50MB
             'cover' => 'nullable|image|max:2048',
         ]);
 
-        $data = $request->only(['title', 'author', 'description', 'category_id', 'isbn', 'publication_year', 'publisher']);
+        $data = $request->only([
+            'title', 'author', 'description', 'category_id', 'university_id',
+            'department_id', 'department_full_name', 'department_short_name',
+            'education_level_id', 'resource_level', 'subject', 'isbn',
+            'publication_year', 'publisher'
+        ]);
         $data['uploaded_by'] = Auth::id();
 
         $book = $this->bookService->createBook($data, $request->file('file'), $request->file('cover'));
@@ -82,6 +94,13 @@ class BookController extends Controller
     {
         $book = $this->bookService->getBookById($id);
         $book->increment('download_count');
+
+        // Create download log
+        \App\Models\DownloadLog::create([
+            'user_id' => Auth::id(),
+            'book_id' => $id,
+            'downloaded_at' => now(),
+        ]);
 
         // Assuming file_path is a URL, we might need to resolve it to a local path or stream it
         return response()->json(['url' => $book->file_path]);

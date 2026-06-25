@@ -28,17 +28,28 @@ export default function UploadDocument(): React.JSX.Element {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<string[]>([])
 
+  // New states for departments and education levels
+  const [departmentSuggestions, setDepartmentSuggestions] = useState<any[]>([])
+  const [educationLevels, setEducationLevels] = useState<Record<string, any[]>>({})
+  const [showDeptSuggestions, setShowDeptSuggestions] = useState(false)
+
   // Form State
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category_id: '',
     university_id: '',
+    department_id: '',
+    department_full_name: '',
+    department_short_name: '',
+    education_category: '', // High School or University
+    education_level_id: '',
     subject: '',
     resource_level: '',
     publisher: '',
     publication_year: '',
     isbn: '',
+    author: '', // Added since it was used but missing from initial state
   })
   const [file, setFile] = useState<File | null>(null)
   const [cover, setCover] = useState<File | null>(null)
@@ -46,7 +57,34 @@ export default function UploadDocument(): React.JSX.Element {
   useEffect(() => {
     getCategories().then(setCategories)
     api.get('/universities').then(res => setUniversities(res.data))
+    api.get('/education-levels').then(res => setEducationLevels(res.data))
   }, [])
+
+  const handleDepartmentSearch = async (val: string) => {
+    setFormData({ ...formData, department_full_name: val, department_id: '' })
+    if (val.length > 1) {
+      try {
+        const res = await api.get(`/departments?search=${val}`)
+        setDepartmentSuggestions(res.data)
+        setShowDeptSuggestions(true)
+      } catch (err) {
+        console.error(err)
+      }
+    } else {
+      setDepartmentSuggestions([])
+      setShowDeptSuggestions(false)
+    }
+  }
+
+  const selectDepartment = (dept: any) => {
+    setFormData({
+      ...formData,
+      department_id: dept.id,
+      department_full_name: dept.department_full_name,
+      department_short_name: dept.department_short_name || ''
+    })
+    setShowDeptSuggestions(false)
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -247,6 +285,87 @@ export default function UploadDocument(): React.JSX.Element {
                       ))}
                     </select>
                   </div>
+
+                  {/* Department Section */}
+                  <div className="space-y-1.5 relative">
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Department Full Name</label>
+                    <input
+                      value={formData.department_full_name}
+                      onChange={e => handleDepartmentSearch(e.target.value)}
+                      onFocus={() => formData.department_full_name.length > 1 && setShowDeptSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowDeptSuggestions(false), 200)}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none transition-all"
+                      placeholder="e.g. Information Technology"
+                    />
+                    {showDeptSuggestions && departmentSuggestions.length > 0 && (
+                      <div className="absolute z-20 w-full mt-1 bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden">
+                        {departmentSuggestions.map(dept => (
+                          <button
+                            key={dept.id}
+                            type="button"
+                            onClick={() => selectDepartment(dept)}
+                            className="w-full text-left px-6 py-3 text-sm font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700 transition-colors"
+                          >
+                            {dept.department_full_name} {dept.department_short_name ? `(${dept.department_short_name})` : ''}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Department Short Name</label>
+                    <input
+                      value={formData.department_short_name}
+                      onChange={e => setFormData({...formData, department_short_name: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none transition-all"
+                      placeholder="e.g. ITE"
+                    />
+                  </div>
+
+                  {/* Education Level Section */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Education Category</label>
+                    <select
+                      value={formData.education_category}
+                      onChange={e => setFormData({...formData, education_category: e.target.value, education_level_id: ''})}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none appearance-none"
+                    >
+                      <option value="">Select Category</option>
+                      <option value="High School">High School Level</option>
+                      <option value="University">University Level</option>
+                    </select>
+                  </div>
+
+                  {formData.education_category && (
+                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">
+                        {formData.education_category === 'High School' ? 'Grade Level' : 'Degree Level'}
+                      </label>
+                      <select
+                        value={formData.education_level_id}
+                        onChange={e => setFormData({...formData, education_level_id: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none appearance-none"
+                      >
+                        <option value="">Select {formData.education_category === 'High School' ? 'Grade' : 'Degree'}</option>
+                        {educationLevels[formData.education_category]?.map(level => (
+                          <option key={level.id} value={level.id}>{level.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {formData.education_category && (
+                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Additional Education Info</label>
+                      <input
+                        value={formData.resource_level}
+                        onChange={e => setFormData({...formData, resource_level: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none transition-all"
+                        placeholder="e.g. Science stream, Honors, etc."
+                      />
+                    </div>
+                  )}
 
                   {uploadType === 'book' ? (
                     <>

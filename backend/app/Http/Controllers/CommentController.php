@@ -10,6 +10,13 @@ use Illuminate\Support\Facades\Auth;
 
 class CommentController extends Controller
 {
+    public function adminIndex()
+    {
+        return Comment::with(['user', 'commentable'])
+            ->latest()
+            ->paginate(20);
+    }
+
     public function update(Request $request, $id)
     {
         try {

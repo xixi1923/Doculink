@@ -95,6 +95,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/books', [BookController::class, 'index']);
     Route::get('/books/{slug}', [BookController::class, 'show']);
     Route::get('/books/{id}/download', [BookController::class, 'download']);
+    Route::post('/books/{id}/comment', [BookController::class, 'comment']);
+    Route::post('/books/request', [\App\Http\Controllers\Api\BookRequestController::class, 'store']);
+    Route::get('/books/requests/my', [\App\Http\Controllers\Api\BookRequestController::class, 'myRequests']);
 
     // Subscriptions
     Route::post('/subscribe', [SubscriptionController::class, 'subscribe']);
@@ -152,6 +155,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/books', [BookController::class, 'store']);
         Route::post('/books/{id}', [BookController::class, 'update']);
         Route::delete('/books/{id}', [BookController::class, 'destroy']);
+        Route::get('/books/logs', [BookController::class, 'logs']);
+
+        // Book Requests
+        Route::get('/book-requests', [\App\Http\Controllers\Api\BookRequestController::class, 'index']);
+        Route::patch('/book-requests/{bookRequest}/status', [\App\Http\Controllers\Api\BookRequestController::class, 'updateStatus']);
+        Route::delete('/book-requests/{bookRequest}', [\App\Http\Controllers\Api\BookRequestController::class, 'destroy']);
 
         // Subscriptions Management
         Route::get('/subscriptions', [SubscriptionController::class, 'adminIndex']);
@@ -171,5 +180,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Report Management
         Route::get('/reports', [ReportController::class, 'adminIndex']);
         Route::post('/reports/{id}/resolve', [ReportController::class, 'adminResolve']);
+
+        // Comment Management
+        Route::get('/comments', [CommentController::class, 'adminIndex']);
     });
 });

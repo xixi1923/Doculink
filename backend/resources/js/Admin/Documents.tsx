@@ -49,7 +49,7 @@ export default function AdminDocuments() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500">Resource Governance</p>
-          <h1 className="text-4xl font-black text-white tracking-tighter">Asset Moderation</h1>
+          <h1 className="text-4xl font-black text-white tracking-tighter">Document Management</h1>
           <p className="text-[14px] font-medium text-slate-500">Review, authorize, or purge incoming knowledge nodes from the pipeline.</p>
         </div>
       </div>
@@ -139,7 +139,7 @@ export default function AdminDocuments() {
         <div className="px-10 py-5 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
            <div className="flex items-center gap-2">
               <Activity size={12} className="text-emerald-500" />
-              <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Mainframe Asset Moderation Interface</p>
+              <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Mainframe Document Management Interface</p>
            </div>
            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] bg-emerald-500/5 px-4 py-1.5 rounded-full border border-emerald-500/10">Active Queue: {filtered.length}</p>
         </div>

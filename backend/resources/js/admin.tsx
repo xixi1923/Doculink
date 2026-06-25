@@ -16,6 +16,9 @@ import AdminProfilePage from './Admin/Profile';
 import AdminSettingsPage from './Admin/Settings';
 import AdminSubscriptionsPage from './Admin/Subscriptions';
 import AdminLoginPage from './Admin/AdminLogin';
+import AdminBookRequestsPage from './Admin/BookRequests';
+import AdminArchiveLogsPage from './Admin/ArchiveLogs';
+import AdminCommentsPage from './Admin/Comments';
 
 class AdminErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: any}> {
     constructor(props: any) {
@@ -72,6 +75,9 @@ function AdminAppMainRoot() {
                         <Route path="profile" element={<AdminProfilePage />} />
                         <Route path="settings" element={<AdminSettingsPage />} />
                         <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+                        <Route path="comments" element={<AdminCommentsPage />} />
+                        <Route path="book-requests" element={<AdminBookRequestsPage />} />
+                        <Route path="logs" element={<AdminArchiveLogsPage />} />
                         {/* Fallback for within /admin */}
                         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                     </Route>

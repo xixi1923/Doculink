@@ -199,7 +199,7 @@ export default function AdminBooksCreate() {
           <Link to="/admin/books" className="inline-flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest mb-4 hover:text-teal-600 transition-colors">
             <ArrowLeft size={14} /> Back to Library
           </Link>
-          <h1 className="text-3xl font-black text-slate-900">{id ? 'Modify Protocol' : 'Archive New Entry'}</h1>
+          <h1 className="text-3xl font-black text-slate-900">{id ? 'Modify Protocol' : 'Add New Book'}</h1>
           <p className="text-sm text-slate-600 font-medium">Configure database entry and secure storage assets.</p>
         </div>
       </div>
@@ -337,19 +337,19 @@ export default function AdminBooksCreate() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Abstract / Description</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Abstract & Overview (Description)</label>
                 <textarea
                   rows={4}
                   value={formData.description}
                   onChange={e => setFormData({...formData, description: e.target.value})}
                   className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-5 text-sm font-medium text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all resize-none"
-                  placeholder="Write a detailed overview of the book contents..."
+                  placeholder="Write a detailed summary and overview of the book contents..."
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Archive Classification</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Archive Category</label>
                   <select
                     required
                     value={formData.category_id}
@@ -459,7 +459,7 @@ export default function AdminBooksCreate() {
               className="flex-[2] inline-flex items-center justify-center gap-3 rounded-3xl bg-teal-600 px-10 py-5 text-sm font-black uppercase tracking-widest text-white hover:bg-teal-700 transition-all shadow-xl shadow-teal-600/20 active:scale-95 disabled:opacity-50"
             >
               {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Shield size={20} />}
-              {id ? 'Update Secure Entry' : 'Commit to Archive'}
+              {id ? 'Update Secure Entry' : 'Add New Book'}
             </button>
           </div>
         </form>

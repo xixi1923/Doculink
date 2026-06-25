@@ -373,7 +373,7 @@ export default function Home(): React.JSX.Element {
                 </div>
                 <div>
                   <h3 className="text-3xl font-black tracking-tight leading-none">{formatNumber(stats?.total_docs || 0)}</h3>
-                  <p className="text-slate-400 font-bold uppercase tracking-wider text-[9px] mt-1">Verified Documents Matrix</p>
+                  <p className="text-slate-400 font-bold uppercase tracking-wider text-[9px] mt-1">Verified Documents Hub</p>
                 </div>
                 <div className="w-full h-px bg-white/5" />
 

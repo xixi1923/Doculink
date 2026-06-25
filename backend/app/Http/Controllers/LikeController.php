@@ -18,19 +18,21 @@ class LikeController extends Controller
             $document = Document::findOrFail($id);
 
             $like = Like::where('user_id', $userId)
-                ->where('document_id', $id)
+                ->where('likeable_id', $id)
+                ->where('likeable_type', Document::class)
                 ->first();
 
             if ($like) {
                 $like->delete();
-                $document->decrement('likes_count');
-                return response()->json(['liked' => false, 'likes_count' => $document->likes_count]);
+                // $document->decrement('likes_count'); // If it has the column
+                return response()->json(['liked' => false]);
             } else {
                 Like::create([
                     'user_id' => $userId,
-                    'document_id' => $id,
+                    'likeable_id' => $id,
+                    'likeable_type' => Document::class,
                 ]);
-                $document->increment('likes_count');
+                // $document->increment('likes_count'); // If it has the column
 
                 // Notification
                 if ($document->user_id && $document->user_id !== $userId) {

@@ -9,7 +9,7 @@ import {
   ChevronRight,
   ArrowLeft
 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { getCategories } from '@/api/categoryApi'
 import api from '@/api/authApi'
 import { useAuthStore } from '@/store/authStore'
@@ -18,9 +18,10 @@ type UploadType = 'document' | 'book';
 
 export default function UploadDocument(): React.JSX.Element {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
-  const [uploadType, setUploadType] = useState<UploadType>('document')
+  const [uploadType, setUploadType] = useState<UploadType>((searchParams.get('type') as UploadType) || 'document')
   const [categories, setCategories] = useState<any[]>([])
   const [universities, setUniversities] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -33,12 +34,13 @@ export default function UploadDocument(): React.JSX.Element {
     title: '',
     description: '',
     category_id: '',
-    university_id: '',
+    university_id: searchParams.get('university_id') || '',
     subject: '',
     resource_level: '',
     publisher: '',
     publication_year: '',
     isbn: '',
+    author: '',
   })
   const [file, setFile] = useState<File | null>(null)
   const [cover, setCover] = useState<File | null>(null)

@@ -11,11 +11,21 @@ class CategorySeeder extends Seeder
     public function run(): void
     {
         $categories = [
+            'Mathematics',
+            'Physics',
+            'Chemistry',
+            'Biology',
+            'Programming',
+            'Computer Science',
+            'Business',
+            'Economics',
+            'English',
+            'Law',
+            'Medical',
             'Lecture Notes',
             'Summaries',
             'Exam Prep',
             'Assignments',
-            'Tutorials',
             'Thesis',
         ];
 

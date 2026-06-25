@@ -12,17 +12,21 @@ import {
   BookOpen,
   Download,
   ChevronRight,
-  Search
+  Search,
+  X
 } from 'lucide-react'
 import api from '@/api/authApi'
+import { useAuthStore } from '@/store/authStore'
 
 import { getDocuments, downloadDocument } from '@/api/documentApi'
 
 export default function UniversityDetail() {
   const { id } = useParams()
+  const { user } = useAuthStore()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showUploadOptions, setShowUploadOptions] = useState(false)
 
   useEffect(() => {
     api.get(`/universities/${id}`)
@@ -62,10 +66,10 @@ export default function UniversityDetail() {
 
   if (!data) return <div className="p-20 text-center text-slate-500">University not found.</div>
 
-  const { university, documents, stats } = data
+  const { university, documents, books, stats } = data
 
-  const filteredDocuments = (documents || []).filter((doc: any) =>
-    doc.title.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredItems = [...(documents || []), ...(books || [])].filter((item: any) =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   return (
@@ -108,9 +112,12 @@ export default function UniversityDetail() {
               </div>
 
               <div className="flex gap-4 mb-2">
-                 <Link to="/upload" className="bg-teal-500 hover:bg-teal-600 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-teal-500/20 flex items-center gap-2 group">
+                 <button
+                    onClick={() => setShowUploadOptions(true)}
+                    className="bg-teal-500 hover:bg-teal-600 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-teal-500/20 flex items-center gap-2 group"
+                 >
                    Upload Material <Upload size={16} className="group-hover:-translate-y-0.5 transition-transform" />
-                 </Link>
+                 </button>
               </div>
             </div>
           </div>
@@ -119,11 +126,12 @@ export default function UniversityDetail() {
 
       {/* ================= STATS GRID ================= */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 -mt-10 relative z-20">
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
             {[
-              { label: 'Total Documents', value: stats.total_documents, icon: FileText },
-              { label: 'Total Contributors', value: stats.total_contributors, icon: Users },
-              { label: 'Total Downloads', value: stats.total_downloads, icon: Download },
+              { label: 'Documents', value: stats.total_documents, icon: FileText },
+              { label: 'E-Books', value: stats.total_books, icon: BookOpen },
+              { label: 'Contributors', value: stats.total_contributors, icon: Users },
+              { label: 'Downloads', value: stats.total_downloads, icon: Download },
             ].map((stat, i) => (
               <div key={i} className="bg-white dark:bg-slate-900 rounded-[32px] p-6 md:p-8 shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 flex items-center gap-5 group hover:border-teal-500/30 transition-all">
                  <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-teal-600 group-hover:scale-110 transition-transform">
@@ -160,30 +168,31 @@ export default function UniversityDetail() {
               </div>
 
               <div className="space-y-4">
-                 {filteredDocuments.length > 0 ? filteredDocuments.map((doc: any) => (
-                    <Link to={`/documents/${doc.id}`} key={doc.id} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 flex items-center gap-5 hover:border-teal-500/30 transition-all group shadow-sm">
+                 {filteredItems.length > 0 ? filteredItems.map((item: any) => (
+                    <Link
+                        to={`/${item.author ? 'books' : 'documents'}/${item.slug || item.id}`}
+                        key={item.id}
+                        className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 flex items-center gap-5 hover:border-teal-500/30 transition-all group shadow-sm"
+                    >
                        <div className="w-14 h-14 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-teal-600 shrink-0">
-                          <FileText size={28} />
+                          {item.author ? <BookOpen size={28} /> : <FileText size={28} />}
                        </div>
                        <div className="flex-grow min-w-0">
-                          <h4 className="font-bold text-slate-900 dark:text-white truncate group-hover:text-teal-600 transition-colors">{doc.title}</h4>
+                          <h4 className="font-bold text-slate-900 dark:text-white truncate group-hover:text-teal-600 transition-colors">{item.title}</h4>
                           <div className="flex items-center gap-3 mt-1">
                              <p className="text-[11px] text-slate-400 font-medium">
-                                By {doc.user?.name} • {doc.category?.name}
+                                {item.author ? `By ${item.author}` : `By ${item.user?.name}`} • {item.category?.name}
                              </p>
-                             <button
-                                onClick={(e) => handleDownload(doc.id, e)}
-                                className="flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 transition-colors"
-                             >
-                                <Download size={12} /> {doc.download_count || 0}
-                             </button>
+                             <div className="flex items-center gap-1 text-[11px] font-bold text-teal-600">
+                                <Download size={12} /> {item.download_count || 0}
+                             </div>
                           </div>
                        </div>
                        <ArrowRight size={18} className="text-slate-300 group-hover:text-teal-600 group-hover:translate-x-1 transition-all" />
                     </Link>
                  )) : (
                     <div className="p-12 text-center bg-slate-50 dark:bg-slate-900 rounded-[32px] border border-dashed border-slate-200 dark:border-slate-800">
-                       <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No documents uploaded for this institution yet.</p>
+                       <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No materials uploaded for this institution yet.</p>
                     </div>
                  )}
               </div>
@@ -210,13 +219,71 @@ export default function UniversityDetail() {
              <p className="text-slate-400 text-xs leading-relaxed mb-6 font-light">
                Help your fellow peers from {university.short_name} by sharing your lecture notes and exam preparations.
              </p>
-             <Link to="/upload" className="inline-block px-8 py-3 bg-white text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-400 transition-all">
+             <button
+                onClick={() => setShowUploadOptions(true)}
+                className="inline-block px-8 py-3 bg-white text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-400 transition-all"
+             >
                Contribute Now
-             </Link>
+             </button>
            </div>
         </aside>
       </div>
 
+      {/* Upload Selection Modal */}
+      {showUploadOptions && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowUploadOptions(false)} />
+            <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[40px] p-10 shadow-2xl animate-in zoom-in duration-300">
+                <button
+                    onClick={() => setShowUploadOptions(false)}
+                    className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                >
+                    <X size={24} />
+                </button>
+
+                <div className="mb-10">
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Share Material</h3>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2">Select the type of resource to upload</p>
+                </div>
+
+                <div className="space-y-4">
+                    <Link
+                        to={`/upload?type=document&university_id=${id}`}
+                        className="flex items-center justify-between p-6 rounded-3xl bg-slate-50 dark:bg-slate-800 border border-transparent hover:border-teal-500/50 hover:bg-teal-50/30 dark:hover:bg-teal-900/10 transition-all group"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-white dark:bg-slate-700 rounded-2xl flex items-center justify-center text-teal-600 shadow-sm">
+                                <FileText size={24} />
+                            </div>
+                            <div>
+                                <p className="font-black text-slate-900 dark:text-white text-sm">Course Document</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Notes, Exams, Slides</p>
+                            </div>
+                        </div>
+                        <ChevronRight size={20} className="text-slate-300 group-hover:text-teal-500 group-hover:translate-x-1 transition-all" />
+                    </Link>
+
+                    {(user?.role === 'admin' || true) && ( // Allow all for now if user wants to see it
+                        <Link
+                            to={`/upload?type=book&university_id=${id}`}
+                            className="flex items-center justify-between p-6 rounded-3xl bg-slate-50 dark:bg-slate-800 border border-transparent hover:border-teal-500/50 hover:bg-teal-50/30 dark:hover:bg-teal-900/10 transition-all group"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-white dark:bg-slate-700 rounded-2xl flex items-center justify-center text-teal-600 shadow-sm">
+                                    <BookOpen size={24} />
+                                </div>
+                                <div>
+                                    <p className="font-black text-slate-900 dark:text-white text-sm">Full E-Book</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Textbooks, Manuscripts</p>
+                                </div>
+                            </div>
+                            <ChevronRight size={20} className="text-slate-300 group-hover:text-teal-500 group-hover:translate-x-1 transition-all" />
+                        </Link>
+                    )}
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   )
 }

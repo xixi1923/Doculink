@@ -39,3 +39,56 @@ export const deleteAdminDocument = async (id) => {
   const response = await api.delete(`/admin/documents/${id}`);
   return response.data;
 };
+
+// Categories
+export const getAdminCategories = async () => {
+  const response = await api.get('/categories');
+  return response.data;
+};
+
+export const createAdminCategory = async (data) => {
+  const response = await api.post('/categories', data);
+  return response.data;
+};
+
+export const updateAdminCategory = async (id, data) => {
+  const response = await api.put(`/categories/${id}`, data);
+  return response.data;
+};
+
+export const deleteAdminCategory = async (id) => {
+  const response = await api.delete(`/categories/${id}`);
+  return response.data;
+};
+
+// Subscriptions
+export const getAdminSubscriptions = async () => {
+  const response = await api.get('/admin/subscriptions');
+  return response.data;
+};
+
+export const verifyAdminSubscription = async (id, data) => {
+  const response = await api.post(`/admin/subscriptions/${id}/verify`, data);
+  return response.data;
+};
+
+// Books
+export const getAdminBooks = async () => {
+  const response = await api.get('/admin/books');
+  return response.data;
+};
+
+export const createAdminBook = async (data) => {
+  const response = await api.post('/admin/books', data);
+  return response.data;
+};
+
+export const updateAdminBook = async (id, data) => {
+  const response = await api.post(`/admin/books/${id}`, data); // Using POST for multipart/form-data
+  return response.data;
+};
+
+export const deleteAdminBook = async (id) => {
+  const response = await api.delete(`/admin/books/${id}`);
+  return response.data;
+};

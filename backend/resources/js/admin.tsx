@@ -9,6 +9,12 @@ import AdminDashboardPage from './Admin/Dashboard';
 import AdminUsersPage from './Admin/Users';
 import AdminDocumentsPage from './Admin/Documents';
 import AdminUniversitiesPage from './Admin/Universities';
+import AdminBooksPage from './Admin/Books';
+import AdminBooksCreatePage from './Admin/BooksCreate';
+import AdminCategoriesPage from './Admin/Categories';
+import AdminProfilePage from './Admin/Profile';
+import AdminSettingsPage from './Admin/Settings';
+import AdminSubscriptionsPage from './Admin/Subscriptions';
 import AdminLoginPage from './Admin/AdminLogin';
 
 class AdminErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: any}> {
@@ -32,10 +38,10 @@ class AdminErrorBoundary extends React.Component<{children: React.ReactNode}, {h
                             {this.state.error?.message || "An unknown error occurred"}
                         </p>
                         <button
-                            onClick={() => window.location.href = '/'}
+                            onClick={() => window.location.href = '/admin'}
                             className="bg-teal-500 text-slate-950 px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-teal-400 transition-colors"
                         >
-                            Restart Session
+                            Back to Dashboard
                         </button>
                     </div>
                 </div>
@@ -52,13 +58,25 @@ function AdminAppMainRoot() {
                 <Routes>
                     <Route path="/" element={<AdminLoginPage />} />
                     <Route path="/admin/login" element={<AdminLoginPage />} />
+
                     <Route path="/admin" element={<AdminLayout />}>
-                        <Route index element={<Navigate to="dashboard" replace />} />
+                        <Route index element={<AdminDashboardPage />} />
                         <Route path="dashboard" element={<AdminDashboardPage />} />
                         <Route path="users" element={<AdminUsersPage />} />
                         <Route path="documents" element={<AdminDocumentsPage />} />
                         <Route path="universities" element={<AdminUniversitiesPage />} />
+                        <Route path="books" element={<AdminBooksPage />} />
+                        <Route path="books/create" element={<AdminBooksCreatePage />} />
+                        <Route path="books/edit/:id" element={<AdminBooksCreatePage />} />
+                        <Route path="categories" element={<AdminCategoriesPage />} />
+                        <Route path="profile" element={<AdminProfilePage />} />
+                        <Route path="settings" element={<AdminSettingsPage />} />
+                        <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+                        {/* Fallback for within /admin */}
+                        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                     </Route>
+
+                    {/* Global Fallback */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </BrowserRouter>

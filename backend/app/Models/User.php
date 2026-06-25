@@ -30,6 +30,8 @@ class User extends Authenticatable
         'social_links',
         'role',
         'status',
+        'is_premium',
+        'premium_until',
     ];
 
     protected $hidden = [
@@ -44,6 +46,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'research_interests' => 'array',
             'social_links' => 'array',
+            'is_premium' => 'boolean',
+            'premium_until' => 'datetime',
         ];
     }
 

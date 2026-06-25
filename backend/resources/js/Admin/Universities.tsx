@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from 'react'
-import { Plus, Edit3, Trash2, Save, X, Building2, MapPin, Globe, Loader2, Hash, AlertCircle, Image as ImageIcon, Upload } from 'lucide-react'
+import { Plus, Edit3, Trash2, Save, X, Building2, MapPin, Globe, Loader2, Hash, AlertCircle, Image as ImageIcon, Upload, Shield, Search, Activity, MoreVertical, Link } from 'lucide-react'
 import api from '@/api/authApi'
+import axios from 'axios'
 
 export default function AdminUniversities() {
   const [universities, setUniversities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [activeUni, setActiveUni] = useState<any>(null)
+  const [searchTerm, setSearchTerm] = useState('')
 
   const [formData, setFormData] = useState({
     name: '',
@@ -26,6 +28,31 @@ export default function AdminUniversities() {
   const [showForm, setShowForm] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
+  const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({})
+
+  const getImageUrl = (path: string | null) => {
+    if (!path) return '';
+    if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:')) return path;
+    const baseUrl = import.meta.env.VITE_R2_PUBLIC_URL || 'https://pub-b5c74841fa6f4115940d4354956c0d0d.r2.dev';
+    return `${baseUrl}/${path}`.replace(/([^:]\/)\/+/g, "$1");
+  };
+
+  const uploadToR2 = async (file: File, folder: string) => {
+    try {
+      const { data } = await api.post('/admin/generate-presigned-url', {
+        filename: file.name,
+        file_type: file.type,
+        folder: folder
+      });
+      await axios.create().put(data.upload_url, file, {
+        headers: { 'Content-Type': file.type }
+      });
+      return data.public_url;
+    } catch (err) {
+      console.error('R2 Upload Error:', err);
+      throw new Error('Failed to upload file to Cloudflare.');
+    }
+  };
 
   useEffect(() => {
     fetchUniversities()
@@ -35,9 +62,10 @@ export default function AdminUniversities() {
     setLoading(true)
     try {
       const res = await api.get('/universities')
-      setUniversities(res.data)
+      setUniversities(Array.isArray(res.data) ? res.data : [])
     } catch (err) {
       console.error(err)
+      setUniversities([])
     } finally {
       setLoading(false)
     }
@@ -74,62 +102,57 @@ export default function AdminUniversities() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'cover') => {
     const file = e.target.files?.[0]
     if (!file) return
-
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      if (type === 'logo') {
-        setLogoFile(file)
-        setLogoPreview(reader.result as string)
-      } else {
-        setCoverFile(file)
-        setCoverPreview(reader.result as string)
-      }
+    const previewUrl = URL.createObjectURL(file);
+    if (type === 'logo') {
+      setLogoFile(file)
+      setLogoPreview(previewUrl)
+    } else {
+      setCoverFile(file)
+      setCoverPreview(previewUrl)
     }
-    reader.readAsDataURL(file)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSaving(true)
     setError('')
-
-    const data = new FormData()
-    data.append('name', formData.name)
-    data.append('short_name', formData.short_name)
-    data.append('location', formData.location)
-    data.append('website', formData.website)
-    data.append('description', formData.description)
-
-    if (logoFile) data.append('logo', logoFile)
-    if (coverFile) data.append('cover_image', coverFile)
-
-    if (activeUni) {
-        data.append('_method', 'PUT')
-    }
-
     try {
-      if (activeUni) {
-        await api.post(`/universities/${activeUni.id}`, data, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        })
-      } else {
-        await api.post('/universities', data, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        })
+      let finalLogo = activeUni?.logo || '';
+      let finalCover = activeUni?.cover_image || '';
+
+      if (logoFile) {
+        finalLogo = await uploadToR2(logoFile, 'universities/logos');
       }
-      fetchUniversities()
-      setActiveUni(null)
+      if (coverFile) {
+        finalCover = await uploadToR2(coverFile, 'universities/covers');
+      }
+
+      const payload = {
+        ...formData,
+        logo: finalLogo,
+        cover_image: finalCover
+      };
+
+      if (activeUni) {
+        await api.put(`/universities/${activeUni.id}`, payload);
+      } else {
+        await api.post('/universities', payload);
+      }
+
+      await fetchUniversities()
       setShowForm(false)
     } catch (err: any) {
-      console.error('Save Error:', err)
-      setError(err.response?.data?.message || 'Failed to save university.')
+      console.error('SAVE ERROR:', err.response?.data || err);
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to save university.';
+      const detailedError = err.response?.data?.errors ? Object.values(err.response.data.errors).flat()[0] : null;
+      setError(detailedError ? `${errorMsg}: ${detailedError}` : errorMsg);
     } finally {
       setIsSaving(false)
     }
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this university and all associated documents?')) return
+    if (!confirm('Purge this institution and all associated repositories?')) return
     try {
       await api.delete(`/universities/${id}`)
       fetchUniversities()
@@ -138,163 +161,230 @@ export default function AdminUniversities() {
     }
   }
 
+  const filteredUniversities = universities.filter(uni =>
+    uni.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    uni.short_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 space-y-4">
+        <div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Scanning Network Hubs...</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-8 font-sans">
-      {/* Header Section */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-teal-600">Institution management</p>
-          <h1 className="mt-3 text-3xl font-black text-slate-900">Manage Universities</h1>
-          <p className="text-sm text-slate-600 font-medium">Add and manage partner institutions and their digital repositories.</p>
+    <div className="space-y-10 animate-in fade-in zoom-in-95 duration-700">
+      {/* Header Module */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-1">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500">Infrastructure Layer</p>
+          <h1 className="text-4xl font-black text-white tracking-tighter">Institutional Hubs</h1>
+          <p className="text-[14px] font-medium text-slate-500">Manage partner universities and their secure digital vaults.</p>
         </div>
-        <button
-          onClick={resetForm}
-          className="inline-flex items-center gap-2 rounded-3xl bg-teal-600 px-6 py-3 text-sm font-black uppercase tracking-widest text-white hover:bg-teal-700 transition-all shadow-lg shadow-teal-500/20 active:scale-95"
-        >
-          <Plus size={18} /> Add Institution
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={resetForm}
+            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-950/20 flex items-center gap-2 active:scale-95 border border-emerald-400/30"
+          >
+            <Plus size={14} /> Add New Node
+          </button>
+        </div>
       </div>
 
-      {/* Main List */}
-      <div className="grid grid-cols-1 gap-4">
-        <section className="space-y-4">
-           {loading ? (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {[...Array(6)].map((_, i) => <div key={i} className="h-64 bg-white rounded-[32px] animate-pulse border border-slate-100" />)}
-             </div>
-           ) : universities.length > 0 ? (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {universities.map(uni => (
-                 <div key={uni.id} className="bg-white rounded-[32px] border border-slate-100 p-6 flex flex-col justify-between gap-6 hover:border-teal-500/40 hover:shadow-xl hover:shadow-slate-200/50 transition-all group">
-                    <div>
-                      <div className="flex items-start justify-between">
-                         <div className="w-14 h-14 rounded-2xl overflow-hidden bg-slate-50 flex items-center justify-center text-teal-600 border border-slate-100 shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-all duration-300">
-                            {uni.logo ? (
-                                <img src={uni.logo} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                                <Building2 size={28} />
-                            )}
-                         </div>
-                         <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => handleEdit(uni)}
-                              className="p-2.5 rounded-xl text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-all"
-                            >
-                               <Edit3 size={18} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(uni.id)}
-                              className="p-2.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
-                            >
-                               <Trash2 size={18} />
-                            </button>
-                         </div>
-                      </div>
+      {/* Table Section */}
+      <div className="bg-slate-900 border border-slate-800 rounded-[40px] shadow-2xl overflow-hidden flex flex-col min-h-[500px]">
+        {/* Table Filter Bar */}
+        <div className="px-8 py-6 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between gap-6">
+            <div className="relative w-full max-w-sm">
+              <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+              <input
+                type="text"
+                placeholder="Search identity name or registry code..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-11 pr-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-emerald-500/50 rounded-xl text-[12px] font-bold text-slate-200 outline-none transition-all shadow-inner"
+              />
+            </div>
+            <div className="flex items-center gap-4 text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
+                <span>Total Hubs: <span className="text-emerald-500">{filteredUniversities.length}</span></span>
+            </div>
+        </div>
 
-                      <div className="mt-5">
-                        <h3 className="font-bold text-lg text-slate-900 leading-tight group-hover:text-teal-600 transition-colors">{uni.name}</h3>
-                        <span className="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-black rounded uppercase tracking-wider">{uni.short_name}</span>
-                      </div>
-
-                      <div className="mt-4 space-y-2.5">
-                         <div className="flex items-center gap-2.5 text-xs font-bold text-slate-500 uppercase tracking-widest">
-                            <MapPin size={14} className="text-teal-500" />
-                            <span>{uni.location || 'Remote'}</span>
-                         </div>
-                         <div className="flex items-center gap-2.5 text-xs font-bold text-slate-500 uppercase tracking-widest">
-                            <Globe size={14} className="text-teal-500" />
-                            <span>{uni.website ? 'Active Digital Node' : 'Offline'}</span>
-                         </div>
-                      </div>
+        <div className="overflow-x-auto flex-1">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-900/80 border-b border-slate-800 text-[10px] font-black text-slate-600 uppercase tracking-[0.2em]">
+                <th className="px-10 py-5">Mainframe Identity</th>
+                <th className="px-10 py-5">Registry Code</th>
+                <th className="px-10 py-5">Location Hub</th>
+                <th className="px-10 py-5">Vault Access</th>
+                <th className="px-10 py-5 text-right pr-12">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/50 bg-slate-950/10">
+              {filteredUniversities.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-24 text-center">
+                    <div className="w-12 h-12 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-700">
+                      <Building2 size={24} />
                     </div>
+                    <p className="text-[11px] font-black text-slate-600 uppercase tracking-[0.2em]">No institutional nodes synchronized in this sector</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredUniversities.map((uni) => (
+                  <tr key={uni.id} className="hover:bg-slate-800/30 transition-all group">
+                    <td className="px-10 py-6">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center shrink-0 group-hover:border-emerald-500/30 transition-all shadow-inner">
+                          {uni.logo && !imgErrors[uni.id] ? (
+                            <img
+                              src={getImageUrl(uni.logo)}
+                              alt=""
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                              onError={() => setImgErrors(prev => ({ ...prev, [uni.id]: true }))}
+                            />
+                          ) : (
+                            <Building2 size={20} className="text-slate-700" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[14px] font-black text-slate-200 block group-hover:text-white transition-colors truncate max-w-[250px]">{uni.name}</span>
+                          <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">Node ID: {uni.id.toString().padStart(4, '0')}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-10 py-6">
+                      <span className="inline-block px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-emerald-500 text-[11px] font-black uppercase tracking-widest shadow-lg">
+                        {uni.short_name || 'NODE'}
+                      </span>
+                    </td>
+                    <td className="px-10 py-6">
+                      <div className="flex items-center gap-2 text-slate-400 font-bold text-[12px] tracking-tight">
+                        <MapPin size={13} className="text-slate-700" />
+                        <span>{uni.location || 'Global Hub'}</span>
+                      </div>
+                    </td>
+                    <td className="px-10 py-6">
+                      <div className="flex items-center gap-2">
+                        {uni.website ? (
+                          <a
+                            href={uni.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 hover:border-emerald-500/20 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-emerald-400 transition-all"
+                          >
+                            <Globe size={12} />
+                            Active Node
+                          </a>
+                        ) : (
+                          <div className="flex items-center gap-1.5 bg-slate-800/50 border border-slate-700/50 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            <Shield size={12} className="opacity-40" />
+                            Cold Hub
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-10 py-6 text-right pr-12">
+                       <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
+                          <button
+                            onClick={() => handleEdit(uni)}
+                            className="p-2.5 bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-slate-500 hover:text-emerald-400 rounded-2xl transition-all shadow-xl"
+                          >
+                            <Edit3 size={15} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(uni.id)}
+                            className="p-2.5 bg-slate-900 border border-slate-800 hover:border-rose-500/50 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 rounded-2xl transition-all shadow-xl"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                       </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-                    {uni.description && (
-                      <p className="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed border-t border-slate-50 pt-4 italic">
-                        "{uni.description}"
-                      </p>
-                    )}
-                 </div>
-               ))}
-             </div>
-           ) : (
-              <div className="py-24 text-center bg-white rounded-[40px] border border-dashed border-slate-200 shadow-sm">
-                <Building2 size={56} className="text-slate-100 mx-auto mb-6" />
-                <p className="text-slate-400 font-bold uppercase text-xs tracking-[0.2em]">No institutions logged in matrix</p>
-                <button onClick={resetForm} className="mt-6 text-teal-600 text-xs font-black uppercase tracking-widest hover:underline">Register First Node</button>
-              </div>
-           )}
-        </section>
+        {/* Table Footer */}
+        <div className="px-10 py-5 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
+           <div className="flex items-center gap-2">
+              <Shield size={12} className="text-slate-700" />
+              <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Encrypted Hub Repository Index</p>
+           </div>
+           <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] bg-emerald-500/5 px-4 py-1.5 rounded-full border border-emerald-500/10">Active Segments: {filteredUniversities.length}</p>
+        </div>
       </div>
 
-      {/* Modal Popup */}
+      {/* Modal Popup (Existing Form) */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-hidden">
-           {/* Backdrop */}
-           <div
-             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300"
-             onClick={() => setShowForm(false)}
-           />
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-8 overflow-hidden">
+           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl transition-opacity duration-300" onClick={() => setShowForm(false)} />
 
-           {/* Modal Content */}
-           <div className="relative w-full max-w-xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-full">
-              <div className="flex items-center justify-between px-10 py-8 border-b border-slate-50 bg-slate-50/50 shrink-0">
+           <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-[50px] shadow-[0_0_100px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+              <div className="flex items-center justify-between px-12 py-10 border-b border-slate-800 bg-slate-900/50 shrink-0">
                  <div>
-                    <h2 className="text-2xl font-black text-slate-900">{activeUni ? 'Edit Institution' : 'New Node Registration'}</h2>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Configure database entry</p>
+                    <div className="flex items-center gap-2.5 mb-2">
+                       <Shield size={16} className="text-emerald-500" />
+                       <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">System Registry</p>
+                    </div>
+                    <h2 className="text-3xl font-black text-white tracking-tighter">{activeUni ? 'Modify Protocol' : 'Register New Node'}</h2>
                  </div>
                  <button
                    onClick={() => setShowForm(false)}
-                   className="p-3 rounded-2xl bg-white border border-slate-200 text-slate-400 hover:text-slate-900 hover:shadow-lg transition-all"
+                   className="p-4 rounded-3xl bg-slate-950 border border-slate-800 text-slate-600 hover:text-white hover:border-slate-700 transition-all shadow-xl"
                  >
                     <X size={20} />
                  </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-10 space-y-6 overflow-y-auto overflow-x-hidden">
-                 {/* Image Upload Row */}
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-2">
-                    {/* Logo Upload */}
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Institutional Logo</label>
+              <form onSubmit={handleSubmit} className="p-12 space-y-8 overflow-y-auto custom-scrollbar bg-slate-950/10">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Identity Logo</label>
                         <div
                             onClick={() => logoInputRef.current?.click()}
-                            className="relative group cursor-pointer aspect-square w-32 rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center overflow-hidden hover:border-teal-500 hover:bg-teal-50/30 transition-all"
+                            className="relative group cursor-pointer aspect-square w-32 rounded-[32px] border-2 border-dashed border-slate-800 bg-slate-950 flex flex-col items-center justify-center overflow-hidden hover:border-emerald-500/50 transition-all shadow-inner"
                         >
                             {logoPreview ? (
                                 <>
-                                    <img src={logoPreview} className="w-full h-full object-cover" />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <img src={getImageUrl(logoPreview)} className="w-full h-full object-cover" key={logoPreview} />
+                                    <div className="absolute inset-0 bg-emerald-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
                                         <Upload className="text-white" size={24} />
                                     </div>
                                 </>
                             ) : (
                                 <>
-                                    <ImageIcon className="text-slate-300 group-hover:text-teal-500 transition-colors" size={32} />
-                                    <span className="text-[10px] font-bold text-slate-400 mt-2 uppercase">Upload Logo</span>
+                                    <ImageIcon className="text-slate-800 group-hover:text-emerald-500/50 transition-colors" size={32} />
+                                    <span className="text-[10px] font-black text-slate-700 mt-2 uppercase">Upload</span>
                                 </>
                             )}
                             <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'logo')} />
                         </div>
                     </div>
 
-                    {/* Cover Image Upload */}
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Cover/Banner Image</label>
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Banner Asset</label>
                         <div
                             onClick={() => coverInputRef.current?.click()}
-                            className="relative group cursor-pointer aspect-[16/9] w-full rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center overflow-hidden hover:border-teal-500 hover:bg-teal-50/30 transition-all"
+                            className="relative group cursor-pointer aspect-[16/9] w-full rounded-[32px] border-2 border-dashed border-slate-800 bg-slate-950 flex flex-col items-center justify-center overflow-hidden hover:border-emerald-500/50 transition-all shadow-inner"
                         >
                             {coverPreview ? (
                                 <>
-                                    <img src={coverPreview} className="w-full h-full object-cover" />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <img src={getImageUrl(coverPreview)} className="w-full h-full object-cover" key={coverPreview} />
+                                    <div className="absolute inset-0 bg-emerald-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
                                         <Upload className="text-white" size={24} />
                                     </div>
                                 </>
                             ) : (
                                 <>
-                                    <ImageIcon className="text-slate-300 group-hover:text-teal-500 transition-colors" size={32} />
-                                    <span className="text-[10px] font-bold text-slate-400 mt-2 uppercase">Upload Banner</span>
+                                    <ImageIcon className="text-slate-800 group-hover:text-emerald-500/50 transition-colors" size={32} />
+                                    <span className="text-[10px] font-black text-slate-700 mt-2 uppercase">Upload Banner</span>
                                 </>
                             )}
                             <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'cover')} />
@@ -302,88 +392,88 @@ export default function AdminUniversities() {
                     </div>
                  </div>
 
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="space-y-1.5 sm:col-span-2">
-                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                          Official Name <span className="w-1 h-1 rounded-full bg-teal-500" />
-                       </label>
+                 <div className="space-y-6">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Official Institutional Title</label>
                        <input
                           required
                           value={formData.name}
                           onChange={e => setFormData({...formData, name: e.target.value})}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all"
-                          placeholder="e.g. Royal University of Phnom Penh"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-[13px] font-black text-white outline-none focus:border-emerald-500/50 transition-all shadow-inner"
+                          placeholder="e.g. Royal University of Technology"
                        />
                     </div>
 
-                    <div className="space-y-1.5">
-                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Short Code</label>
-                       <div className="relative">
-                          <Hash className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                          <input
-                             required
-                             value={formData.short_name}
-                             onChange={e => setFormData({...formData, short_name: e.target.value.toUpperCase()})}
-                             className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-5 py-4 text-sm font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all"
-                             placeholder="RUPP"
-                          />
-                       </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Registry Code</label>
+                           <div className="relative">
+                              <Hash className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-700" size={14} />
+                              <input
+                                 required
+                                 value={formData.short_name}
+                                 onChange={e => setFormData({...formData, short_name: e.target.value.toUpperCase()})}
+                                 className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-6 py-4 text-[13px] font-black text-white outline-none focus:border-emerald-500/50 transition-all shadow-inner"
+                                 placeholder="RUT-01"
+                              />
+                           </div>
+                        </div>
+
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Geospatial Origin</label>
+                           <input
+                              value={formData.location}
+                              onChange={e => setFormData({...formData, location: e.target.value})}
+                              className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-[13px] font-black text-white outline-none focus:border-emerald-500/50 transition-all shadow-inner"
+                              placeholder="Phnom Penh Hub"
+                           />
+                        </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Location</label>
-                       <input
-                          value={formData.location}
-                          onChange={e => setFormData({...formData, location: e.target.value})}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all"
-                          placeholder="Phnom Penh"
-                       />
-                    </div>
-
-                    <div className="space-y-1.5 sm:col-span-2">
-                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Digital Website (URL)</label>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Digital Access Hub (URL)</label>
                        <input
                           type="url"
                           value={formData.website}
                           onChange={e => setFormData({...formData, website: e.target.value})}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all"
-                          placeholder="https://www.example.edu.kh"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-[13px] font-black text-white outline-none focus:border-emerald-500/50 transition-all shadow-inner"
+                          placeholder="https://repo.institution.edu.kh"
                        />
                     </div>
 
-                    <div className="space-y-1.5 sm:col-span-2">
-                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Institutional Profile</label>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Historical Abstract</label>
                        <textarea
                           rows={3}
                           value={formData.description}
                           onChange={e => setFormData({...formData, description: e.target.value})}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-medium text-slate-800 outline-none focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all resize-none"
-                          placeholder="Summarize the institution's primary focus..."
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-[13px] font-medium text-slate-300 outline-none focus:border-emerald-500/50 transition-all resize-none shadow-inner"
+                          placeholder="Describe the node purpose and archive specialization..."
                        />
                     </div>
                  </div>
 
                  {error && (
-                   <div className="p-5 bg-rose-50 rounded-[24px] border border-rose-100 flex items-start gap-4">
+                   <div className="p-5 bg-rose-500/5 rounded-[24px] border border-rose-500/20 flex items-start gap-4">
                      <AlertCircle size={18} className="text-rose-500 shrink-0 mt-0.5" />
-                     <p className="text-xs text-rose-600 font-bold leading-relaxed">{error}</p>
+                     <p className="text-[11px] text-rose-300 font-bold leading-relaxed">{error}</p>
                    </div>
                  )}
 
-                 <div className="flex gap-4 pt-4 shrink-0 bg-white">
+                 <div className="flex gap-4 pt-4 shrink-0">
                     <button
                       type="button"
                       onClick={() => setShowForm(false)}
-                      className="flex-1 px-6 py-5 rounded-2xl border border-slate-200 text-sm font-bold text-slate-500 hover:bg-slate-50 transition-all active:scale-95"
+                      className="flex-1 px-8 py-5 rounded-[24px] bg-slate-900 border border-slate-800 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all shadow-xl"
                     >
-                      Cancel
+                      Abort
                     </button>
                     <button
                       disabled={isSaving}
-                      className="flex-[2] inline-flex items-center justify-center gap-2 rounded-2xl bg-teal-600 px-6 py-5 text-sm font-black uppercase tracking-widest text-white hover:bg-teal-700 transition-all disabled:opacity-50 shadow-xl shadow-teal-600/20 active:scale-95"
+                      className="flex-[2] inline-flex items-center justify-center gap-3 rounded-[24px] bg-emerald-600 px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-950 hover:bg-emerald-500 transition-all disabled:opacity-50 shadow-[0_0_40px_rgba(5,150,105,0.3)] border border-emerald-400/30"
                     >
                       {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                      {activeUni ? 'Save Changes' : 'Initialize Node'}
+                      {activeUni ? 'Commit Changes' : 'Initialize Node'}
                     </button>
                  </div>
               </form>

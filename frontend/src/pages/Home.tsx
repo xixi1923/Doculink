@@ -272,7 +272,7 @@ export default function Home(): React.JSX.Element {
                           <span className="text-xs font-bold text-slate-700 truncate group-hover/user:text-teal-600 transition-colors">{doc.user?.name || 'Anonymous'}</span>
                         </Link>
                         <div className="flex items-center gap-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide shrink-0">
-                          <span className="flex items-center gap-0.5"><Eye size={12} /> {formatNumber(doc.view_count)}</span>
+                          <span className="flex items-center gap-0.5"><Eye size={12} /> {formatNumber(doc.views_count)}</span>
                           <span className="flex items-center gap-0.5"><Download size={12} /> {formatNumber(doc.download_count)}</span>
                         </div>
                       </div>

@@ -29,4 +29,9 @@ class University extends Model
     {
         return $this->hasMany(Document::class);
     }
+
+    public function books()
+    {
+        return $this->hasMany(Book::class);
+    }
 }

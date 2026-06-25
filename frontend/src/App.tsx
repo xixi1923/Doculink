@@ -9,6 +9,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import Books from './pages/Books'
 import BookDetail from './pages/BookDetail'
 import BookReader from './pages/BookReader'
+import SubscriptionVerify from './pages/SubscriptionVerify'
 import Search from './pages/Search'
 import Universities from './pages/Universities'
 import UniversityDetail from './pages/Universities/UniversityDetail'
@@ -80,8 +81,9 @@ function App() {
         />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="books" element={<Books />} />
-        <Route path="books/:id" element={<BookDetail />} />
+        <Route path="books/:slug" element={<BookDetail />} />
         <Route path="books/:id/read" element={<BookReader />} />
+        <Route path="subscription/verify" element={<SubscriptionVerify />} />
         <Route path="universities" element={<Universities />} />
         <Route path="universities/:id" element={<UniversityDetail />} />
         <Route path="search" element={<Search />} />

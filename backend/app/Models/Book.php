@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Book extends Model
 {
@@ -11,23 +12,43 @@ class Book extends Model
 
     protected $fillable = [
         'title',
+        'subtitle',
+        'slug',
         'author',
         'description',
+        'publisher',
+        'isbn',
+        'language',
         'cover_image',
         'file_path',
-        'isbn',
-        'publisher',
-        'publication_year',
+        'pdf_url',
         'category_id',
         'university_id',
-        'department_id',
-        'education_level_id',
-        'subject',
-        'resource_level',
+        'tags',
+        'book_type',
+        'status',
+        'file_size',
+        'page_count',
+        'is_featured',
         'uploaded_by',
         'view_count',
         'download_count',
     ];
+
+    protected $casts = [
+        'tags' => 'array',
+        'is_featured' => 'boolean',
+    ];
+
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($book) {
+            if (empty($book->slug)) {
+                $book->slug = Str::slug($book->title) . '-' . Str::random(5);
+            }
+        });
+    }
 
     public function category()
     {
@@ -37,16 +58,6 @@ class Book extends Model
     public function university()
     {
         return $this->belongsTo(University::class);
-    }
-
-    public function department()
-    {
-        return $this->belongsTo(Department::class);
-    }
-
-    public function educationLevel()
-    {
-        return $this->belongsTo(EducationLevel::class);
     }
 
     public function uploader()
@@ -61,11 +72,6 @@ class Book extends Model
 
     public function likes()
     {
-        return $this->hasMany(Like::class, 'book_id');
-    }
-
-    public function comments()
-    {
-        return $this->morphMany(Comment::class, 'commentable');
+        return $this->morphMany(Like::class, 'likeable');
     }
 }

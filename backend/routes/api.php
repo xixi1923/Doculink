@@ -16,6 +16,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\DocumentManagementController;
@@ -90,11 +91,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Reports
     Route::post('/reports', [ReportController::class, 'store']);
 
-    // Books (Admin only for creation/management)
-    Route::post('/books', [BookController::class, 'store']);
-    Route::put('/books/{id}', [BookController::class, 'update']);
-    Route::delete('/books/{id}', [BookController::class, 'destroy']);
+    // Books
+    Route::get('/books', [BookController::class, 'index']);
+    Route::get('/books/{slug}', [BookController::class, 'show']);
     Route::get('/books/{id}/download', [BookController::class, 'download']);
+
+    // Subscriptions
+    Route::post('/subscribe', [SubscriptionController::class, 'subscribe']);
+    Route::get('/subscription/status', [SubscriptionController::class, 'userStatus']);
 
     // Community
     Route::post('/community/questions', [CommunityController::class, 'storeQuestion']);
@@ -119,24 +123,39 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/messages/{conversationId}/typing-users', [MessageController::class, 'getTypingIndicators']);
     Route::get('/messages/attachments/{attachmentId}/download', [MessageController::class, 'downloadAttachment']);
 
-    // Universities (Admin only for creation/management)
-    Route::post('/universities', [UniversityController::class, 'store']);
-    Route::put('/universities/{id}', [UniversityController::class, 'update']);
-    Route::delete('/universities/{id}', [UniversityController::class, 'destroy']);
+    // Admin-level Management (within auth group but mostly for admin/authorized users)
+    // Note: These could also be moved to the admin prefix group if strictly admin-only.
+    Route::middleware(\App\Http\Middleware\IsAdmin::class)->group(function() {
+        // Universities
+        Route::post('/universities', [UniversityController::class, 'store']);
+        Route::put('/universities/{id}', [UniversityController::class, 'update']);
+        Route::delete('/universities/{id}', [UniversityController::class, 'destroy']);
 
-    // Categories (Admin only)
-    Route::post('/categories', [CategoryController::class, 'store']);
-    Route::put('/categories/{id}', [CategoryController::class, 'update']);
-    Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
+        // Categories
+        Route::post('/categories', [CategoryController::class, 'store']);
+        Route::put('/categories/{id}', [CategoryController::class, 'update']);
+        Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
 
-    // Tags (Admin only for creation/management)
-    Route::post('/tags', [TagController::class, 'store']);
-    Route::put('/tags/{id}', [TagController::class, 'update']);
-    Route::delete('/tags/{id}', [TagController::class, 'destroy']);
+        // Tags
+        Route::post('/tags', [TagController::class, 'store']);
+        Route::put('/tags/{id}', [TagController::class, 'update']);
+        Route::delete('/tags/{id}', [TagController::class, 'destroy']);
+    });
 
     // Admin Panel Routes
-    Route::prefix('admin')->group(function () {
+    Route::prefix('admin')->middleware(\App\Http\Middleware\IsAdmin::class)->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
+        Route::post('/generate-presigned-url', [\App\Http\Controllers\Admin\UploadController::class, 'getPresignedUrl']);
+
+        // Book Management
+        Route::get('/books', [BookController::class, 'index']);
+        Route::post('/books', [BookController::class, 'store']);
+        Route::post('/books/{id}', [BookController::class, 'update']);
+        Route::delete('/books/{id}', [BookController::class, 'destroy']);
+
+        // Subscriptions Management
+        Route::get('/subscriptions', [SubscriptionController::class, 'adminIndex']);
+        Route::post('/subscriptions/{id}/verify', [SubscriptionController::class, 'adminVerify']);
 
         // User Management
         Route::get('/users', [UserManagementController::class, 'index']);

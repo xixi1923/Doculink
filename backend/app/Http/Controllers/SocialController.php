@@ -64,24 +64,29 @@ class SocialController extends Controller
         }
 
         $query = Like::where('user_id', $userId);
-        if ($docId) $query->where('document_id', $docId);
-        else $query->where('book_id', $bookId);
+        if ($docId) {
+            $query->where('likeable_id', $docId)->where('likeable_type', Document::class);
+        } else {
+            $query->where('likeable_id', $bookId)->where('likeable_type', Book::class);
+        }
 
         $like = $query->first();
 
         if ($like) {
             $like->delete();
-            if ($docId) Document::find($docId)?->decrement('likes_count');
-            else Book::find($bookId)?->decrement('likes_count');
+            // Optional: decrement likes_count if columns exist
+            // if ($docId) Document::find($docId)?->decrement('likes_count');
+            // else Book::find($bookId)?->decrement('likes_count');
             return response()->json(['liked' => false]);
         } else {
             Like::create([
                 'user_id' => $userId,
-                'document_id' => $docId,
-                'book_id' => $bookId,
+                'likeable_id' => $docId ?: $bookId,
+                'likeable_type' => $docId ? Document::class : Book::class,
             ]);
-            if ($docId) Document::find($docId)?->increment('likes_count');
-            else Book::find($bookId)?->increment('likes_count');
+            // Optional: increment likes_count if columns exist
+            // if ($docId) Document::find($docId)?->increment('likes_count');
+            // else Book::find($bookId)?->increment('likes_count');
 
             return response()->json(['liked' => true]);
         }

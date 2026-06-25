@@ -67,7 +67,9 @@ class DocumentController extends Controller
                 $totalUploads = $user->documents()->count() + $user->books()->count();
                 $totalDownloads = $user->documents()->sum('download_count');
                 $totalViews = $user->documents()->sum('view_count');
-                $totalLikes = \App\Models\Like::whereIn('document_id', $user->documents()->pluck('id'))->count();
+                $totalLikes = \App\Models\Like::whereIn('likeable_id', $user->documents()->pluck('id'))
+                    ->where('likeable_type', \App\Models\Document::class)
+                    ->count();
                 $totalComments = \App\Models\Comment::whereIn('commentable_id', $user->documents()->pluck('id'))
                     ->where('commentable_type', 'App\Models\Document')
                     ->count();

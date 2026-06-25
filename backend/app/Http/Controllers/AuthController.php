@@ -63,19 +63,16 @@ class AuthController extends Controller
 
     public function getUserProfile($id)
     {
-        $user = User::with([
-            'documents' => function($q) {
-                $q->withCount(['comments', 'likes']);
-            },
-            'books',
-            'university',
-            'followers',
-            'followings'
-        ])->findOrFail($id);
+        $user = User::with(['university', 'followers', 'followings'])->findOrFail($id);
 
-        $totalDownloads = $user->documents->sum('download_count');
-        $totalViews = $user->documents->sum('view_count');
-        $totalLikes = $user->documents->sum('likes_count');
+        $docIds = $user->documents()->pluck('id');
+        $totalDocDownloads = $user->documents()->sum('download_count');
+        $totalBookDownloads = $user->books()->sum('download_count');
+        $totalViews = $user->documents()->sum('view_count');
+
+        $totalLikes = \App\Models\Like::whereIn('likeable_id', $docIds)
+            ->where('likeable_type', \App\Models\Document::class)
+            ->count();
 
         $isFollowing = false;
         if (Auth::check()) {
@@ -85,10 +82,13 @@ class AuthController extends Controller
         }
 
         return response()->json([
-            'user' => $user,
+            'user' => $user->load([
+                'documents' => function($q) { $q->where('status', 'approved')->withCount(['comments', 'likes']); },
+                'books' => function($q) { $q->where('status', 'published'); }
+            ]),
             'stats' => [
-                'total_uploads' => $user->documents->count() + $user->books->count(),
-                'total_downloads' => (int) $totalDownloads,
+                'total_uploads' => $docIds->count() + $user->books()->count(),
+                'total_downloads' => (int) ($totalDocDownloads + $totalBookDownloads),
                 'total_views' => (int) $totalViews,
                 'total_likes' => (int) $totalLikes,
                 'followers_count' => $user->followers->count(),
@@ -100,32 +100,38 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        $user = $request->user()->load([
-            'documents' => function($q) {
-                $q->withCount(['comments', 'likes']);
-            },
-            'books',
+        $user = $request->user();
+
+        // Manual stats calculation to be 100% safe
+        $docIds = $user->documents()->pluck('id');
+
+        $totalUploads = $docIds->count() + $user->books()->count();
+        $totalDownloads = (int) $user->documents()->sum('download_count');
+        $totalViews = (int) $user->documents()->sum('view_count');
+
+        $totalLikes = \App\Models\Like::whereIn('likeable_id', $docIds)
+            ->where('likeable_type', \App\Models\Document::class)
+            ->count();
+
+        // Load relations for response
+        $user->load([
+            'university',
+            'followers',
+            'followings',
             'favorites' => function($q) {
                 $q->orderBy('created_at', 'desc');
             },
             'favorites.document.user',
             'favorites.book',
-            'university',
-            'followers',
-            'followings'
         ]);
-
-        $totalDownloads = $user->documents->sum('download_count');
-        $totalViews = $user->documents->sum('view_count');
-        $totalLikes = $user->documents->sum('likes_count');
 
         return response()->json([
             'user' => $user,
             'stats' => [
-                'total_uploads' => $user->documents->count() + $user->books->count(),
-                'total_downloads' => (int) $totalDownloads,
-                'total_views' => (int) $totalViews,
-                'total_likes' => (int) $totalLikes,
+                'total_uploads' => $totalUploads,
+                'total_downloads' => $totalDownloads,
+                'total_views' => $totalViews,
+                'total_likes' => $totalLikes,
                 'followers_count' => $user->followers->count(),
                 'following_count' => $user->followings->count(),
             ]
@@ -188,19 +194,18 @@ class AuthController extends Controller
 
     public function getPublicProfile($username)
     {
-        $user = User::with([
-            'documents' => function($q) {
-                $q->withCount(['comments', 'likes'])->where('status', 'approved');
-            },
-            'books',
-            'university',
-            'followers',
-            'followings'
-        ])->where('username', $username)->firstOrFail();
+        $user = User::with(['university', 'followers', 'followings'])
+            ->where('username', $username)
+            ->firstOrFail();
 
-        $totalDownloads = $user->documents->sum('download_count');
-        $totalViews = $user->documents->sum('view_count');
-        $totalLikes = $user->documents->sum('likes_count');
+        $docIds = $user->documents()->where('status', 'approved')->pluck('id');
+        $totalDocDownloads = $user->documents()->where('status', 'approved')->sum('download_count');
+        $totalBookDownloads = $user->books()->where('status', 'published')->sum('download_count');
+        $totalViews = $user->documents()->where('status', 'approved')->sum('view_count');
+
+        $totalLikes = \App\Models\Like::whereIn('likeable_id', $docIds)
+            ->where('likeable_type', \App\Models\Document::class)
+            ->count();
 
         $isFollowing = false;
         if (Auth::check()) {
@@ -210,10 +215,13 @@ class AuthController extends Controller
         }
 
         return response()->json([
-            'user' => $user,
+            'user' => $user->load([
+                'documents' => function($q) { $q->where('status', 'approved')->withCount(['comments', 'likes']); },
+                'books' => function($q) { $q->where('status', 'published'); }
+            ]),
             'stats' => [
-                'total_uploads' => $user->documents->count() + $user->books->count(),
-                'total_downloads' => (int) $totalDownloads,
+                'total_uploads' => $docIds->count() + $user->books()->where('status', 'published')->count(),
+                'total_downloads' => (int) ($totalDocDownloads + $totalBookDownloads),
                 'total_views' => (int) $totalViews,
                 'total_likes' => (int) $totalLikes,
                 'followers_count' => $user->followers->count(),

@@ -1,47 +1,28 @@
+import { useEffect, useState } from 'react'
+import { useParams, Link } from 'react-router-dom'
 import {
-  BookOpen,
-  Download,
-  Share2,
-  Bookmark,
-  Star,
-  ChevronRight,
-  Eye,
-  ShieldCheck,
-  MoreHorizontal,
-  ArrowRight,
-  Loader2,
-  Calendar,
-  Layers,
-  Hash,
-  Heart,
-  MessageSquare,
-  Plus
+  BookOpen, Download, Share2, Bookmark, ArrowLeft,
+  ShieldCheck, Lock, CheckCircle2, Star, Clock, FileText,
+  Globe, Hash, Loader2, AlertCircle
 } from 'lucide-react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import api, { toggleFavoriteApi, toggleLikeApi } from '@/api/authApi'
-import { useAuthStore } from '@/store/authStore'
+import api from '@/api'
+import { getImageUrl } from '@/utils/image'
 
 export default function BookDetail() {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const { token } = useAuthStore()
-  const [book, setBook] = useState<any>(null)
+  const { slug } = useParams()
+  const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [isFavorited, setIsFavorited] = useState(false)
-  const [isLiked, setIsLiked] = useState(false)
+  const [userStatus, setUserStatus] = useState<any>(null)
 
-  useEffect(() => {
-    fetchBook()
-  }, [id])
-
-  const fetchBook = async () => {
+  const fetchData = async () => {
     setLoading(true)
     try {
-      const res = await api.get(`/books/${id}`)
-      setBook(res.data)
-      setIsFavorited(res.data.is_favorited)
-      setIsLiked(res.data.is_liked)
+      const [bookRes, statusRes] = await Promise.all([
+        api.get(`/books/${slug}`),
+        api.get('/subscription/status')
+      ])
+      setData(bookRes.data)
+      setUserStatus(statusRes.data)
     } catch (err) {
       console.error(err)
     } finally {
@@ -49,202 +30,191 @@ export default function BookDetail() {
     }
   }
 
-  const handleFavorite = async () => {
-    if (!token) return alert('Please login to save favorites.')
-    try {
-      const res = await toggleFavoriteApi({ book_id: Number(id) })
-      setIsFavorited(res.favorited)
-      setBook({ ...book, favorites_count: res.favorited ? (book.favorites_count + 1) : (book.favorites_count - 1) })
-    } catch (err) {
-      console.error(err)
-    }
+  useEffect(() => {
+    fetchData()
+  }, [slug])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
+        <div className="w-10 h-10 border-4 border-emerald-900/10 border-t-emerald-900 rounded-full animate-spin mb-4"></div>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-900/40">Loading Archive...</p>
+      </div>
+    )
   }
 
-  const handleLike = async () => {
-    if (!token) return alert('Please login to react.')
-    try {
-      const res = await toggleLikeApi({ book_id: Number(id) })
-      setIsLiked(res.liked)
-      setBook({ ...book, likes_count: res.likes_count })
-    } catch (err) {
-      console.error(err)
-    }
-  }
+  if (!data?.book) return <div className="p-20 text-center text-slate-900 font-bold">Book not found</div>
+
+  const { book, related } = data
+  const isPremiumLocked = book.book_type === 'premium' && !userStatus?.is_premium
 
   const handleDownload = async () => {
-    if (!token) return alert('Please login to download.')
-    try {
-      const res = await api.get(`/books/${id}/download`)
-      window.open(res.data.url, '_blank')
-      setBook((prev: any) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          download_count: (prev.download_count || 0) + 1
-        }
-      })
-    } catch (err) {
-      console.error(err)
-    }
+    if (isPremiumLocked) return
+    window.open(`${import.meta.env.VITE_API_URL || ''}/api/books/${book.id}/download`, '_blank')
   }
 
-  if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-white">
-        <Loader2 className="animate-spin text-teal-600 mb-4" size={40} />
-        <p className="text-slate-500 font-black uppercase tracking-widest text-xs">Accessing Library Node...</p>
-    </div>
-  )
-
-  if (!book) return <div className="p-20 text-center text-slate-900 font-bold">Book not found.</div>
-
   return (
-    <div className="bg-white min-h-screen pb-20 font-sans text-slate-900">
-      <div className="max-w-7xl mx-auto px-4 pt-10">
+    <div className="min-h-screen bg-gray-50/50 font-sans pb-20 antialiased">
+      {/* Compact Header */}
+      <div className="bg-white border-b border-gray-100 pt-24 pb-12">
+        <div className="container mx-auto px-6">
+            <Link to="/books" className="inline-flex items-center gap-2 text-gray-400 hover:text-emerald-900 transition-colors text-[10px] font-black uppercase tracking-widest mb-8">
+                <ArrowLeft size={14} /> Return to Archive
+            </Link>
 
-        {/* Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-10">
-          <Link to="/" className="hover:text-teal-600 transition-colors">Home</Link>
-          <ChevronRight size={12} />
-          <Link to="/books" className="hover:text-teal-600 transition-colors">Library</Link>
-          <ChevronRight size={12} />
-          <span className="text-slate-900">{book.category?.name}</span>
-        </nav>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-
-          {/* Left Column: Content */}
-          <div className="lg:col-span-8 space-y-10">
-            <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                    <span className="px-3 py-1 bg-teal-50 text-teal-700 rounded-full text-[10px] font-black uppercase tracking-widest border border-teal-100">
-                        Academic E-Book
-                    </span>
-                    <span className="flex items-center gap-1.5 text-[10px] font-black text-teal-600 uppercase tracking-widest">
-                        <ShieldCheck size={14} /> Verified Node
-                    </span>
-                </div>
-
-                <h1 className="text-4xl md:text-5xl font-black text-slate-900 leading-[1.1] tracking-tight">
-                    {book.title}
-                </h1>
-
-                <div className="flex items-center gap-4 text-sm font-medium text-slate-500">
-                    <span>By</span>
-                    <span className="text-slate-900 font-bold">{book.author}</span>
-                    <span>•</span>
-                    <span>Released in {book.publication_year || 'N/A'}</span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-4 pt-4">
-                    <button
-                        onClick={handleDownload}
-                        className="flex items-center gap-2 px-8 py-4 bg-teal-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-teal-600/20 hover:bg-teal-700 transition-all"
-                    >
-                        <Download size={18} /> Download Resource
-                    </button>
-                    <button
-                        onClick={handleFavorite}
-                        className={`flex items-center gap-2 px-6 py-4 border-2 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isFavorited ? 'bg-amber-50 border-amber-200 text-amber-600 shadow-sm' : 'border-slate-100 text-slate-600 hover:bg-slate-50'}`}
-                    >
-                        <Bookmark size={18} className={isFavorited ? 'fill-current' : ''} />
-                        {isFavorited ? 'Saved' : 'Save Asset'}
-                    </button>
-                    <button className="p-4 border-2 border-slate-100 rounded-2xl text-slate-400 hover:bg-slate-50 transition-all">
-                        <Share2 size={20} />
-                    </button>
-                </div>
-            </div>
-
-            {/* Book Preview Area */}
-            <div className="rounded-[40px] overflow-hidden bg-slate-900 aspect-video relative group border border-slate-800 shadow-2xl">
-               <iframe
-                  src={`https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(book.file_path)}`}
-                  className="w-full h-full border-none"
-                  title="Book Viewer"
-               />
-               <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                   <button
-                      onClick={handleDownload}
-                      className="p-3 bg-teal-600 text-white rounded-2xl shadow-xl hover:bg-teal-700 transition-all"
-                   >
-                       <Download size={22} />
-                   </button>
-               </div>
-            </div>
-
-            <div className="bg-slate-50/50 p-10 rounded-[48px] border border-slate-100/50">
-               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Abstract Summary</h3>
-               <p className="text-[15px] text-slate-600 font-medium leading-relaxed">
-                 {book.description || "No description provided for this academic resource. Please refer to the original file for full contents and research data."}
-               </p>
-            </div>
-          </div>
-
-          {/* Right Column: Sidebar */}
-          <div className="lg:col-span-4 space-y-10">
-            {/* About the Uploader */}
-            <div className="bg-[#fcfdfe] p-10 rounded-[48px] border border-slate-100/50 shadow-sm space-y-8">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Contributor</h3>
-
-                <div className="flex items-center gap-5">
-                    <div className="w-20 h-20 rounded-[28px] bg-white border border-slate-100 shadow-sm flex items-center justify-center text-3xl font-black text-teal-600 overflow-hidden">
-                         {book.uploader?.avatar ? <img src={book.uploader.avatar} className="w-full h-full object-cover" /> : book.uploader?.name?.charAt(0) || 'U'}
-                    </div>
-                    <div>
-                         <h4 className="font-black text-lg text-slate-900 leading-tight">{book.uploader?.name || 'Anonymous'}</h4>
-                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Librarian</p>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center gap-1">
-                        <Eye size={16} className="text-slate-400" />
-                        <p className="text-sm font-black text-slate-900">{book.view_count || 0}</p>
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Views</p>
-                    </div>
-
-                    <button
-                        onClick={handleLike}
-                        className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center gap-1 ${isLiked ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-slate-50/50 border-slate-100 text-slate-400 hover:bg-slate-100'}`}
-                    >
-                        <Heart size={16} className={isLiked ? 'fill-current' : ''} />
-                        <p className={`text-sm font-black ${isLiked ? 'text-rose-600' : 'text-slate-900'}`}>{book.likes_count || 0}</p>
-                        <p className="text-[8px] font-bold uppercase tracking-widest">Likes</p>
-                    </button>
-
-                    <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center gap-1">
-                        <MessageSquare size={16} className="text-slate-400" />
-                        <p className="text-sm font-black text-slate-900">{book.comments_count || 0}</p>
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Comments</p>
-                    </div>
-
-                    <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center gap-1">
-                        <Download size={16} className="text-slate-400" />
-                        <p className="text-sm font-black text-slate-900">{book.download_count || 0}</p>
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Downloads</p>
-                    </div>
-                </div>
-
-                <p className="text-[13px] text-slate-500 font-medium leading-relaxed">
-                    Verified librarian at the DocuLink global network. Focused on sharing high-quality textbooks and academic resources.
-                </p>
-            </div>
-
-            {/* Technical Metadata */}
-            <div className="space-y-6 px-4">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Metadata</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-10 items-start">
+                {/* Book Cover */}
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ISBN</span>
-                        <span className="text-xs font-bold text-slate-900">{book.isbn || 'N/A'}</span>
+                    <div className="aspect-[3/4] rounded-2xl overflow-hidden shadow-lg border border-gray-100 relative bg-gray-50">
+                        <img src={getImageUrl(book.cover_image)} className="w-full h-full object-cover" alt={book.title} />
+                        {book.book_type === 'premium' && (
+                            <div className="absolute top-4 right-4 bg-amber-400 text-slate-950 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm">
+                                Premium 🔒
+                            </div>
+                        )}
                     </div>
-                    <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Publisher</span>
-                        <span className="text-xs font-bold text-slate-900">{book.publisher || 'N/A'}</span>
+
+                    <div className="flex gap-2">
+                        <button className="flex-1 py-3 rounded-xl bg-gray-50 border border-gray-100 text-gray-400 flex items-center justify-center hover:bg-gray-100 transition-all">
+                            <Share2 size={16} />
+                        </button>
+                        <button className="flex-1 py-3 rounded-xl bg-gray-50 border border-gray-100 text-gray-400 flex items-center justify-center hover:bg-gray-100 transition-all">
+                            <Bookmark size={16} />
+                        </button>
                     </div>
                 </div>
+
+                {/* Information */}
+                <div className="space-y-6">
+                    <div>
+                        <div className="flex flex-wrap items-center gap-2 mb-4">
+                            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-100">
+                                {book.category?.name}
+                            </span>
+                            <span className="text-gray-400 text-[9px] font-bold uppercase tracking-widest">
+                                {book.file_size} · {book.page_count} Pages
+                            </span>
+                        </div>
+                        <h1 className="text-2xl md:text-3xl font-black text-gray-900 leading-tight tracking-tight">
+                            {book.title}
+                        </h1>
+                        {book.subtitle && (
+                            <p className="text-lg font-bold text-gray-400 mt-2 italic">{book.subtitle}</p>
+                        )}
+                        <p className="text-sm text-emerald-700 font-black mt-3 uppercase tracking-widest">By {book.author}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-5 border-y border-gray-50">
+                        <div className="space-y-1">
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Publisher</p>
+                            <p className="text-xs font-bold text-gray-900">{book.publisher || 'N/A'}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">ISBN</p>
+                            <p className="text-xs font-bold text-gray-900">{book.isbn || 'N/A'}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Language</p>
+                            <p className="text-xs font-bold text-gray-900">{book.language}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Released</p>
+                            <p className="text-xs font-bold text-gray-900">{new Date(book.created_at).getFullYear()}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                        {isPremiumLocked ? (
+                            <Link
+                                to="/subscription/verify"
+                                className="px-10 py-4 bg-amber-400 text-slate-950 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-amber-300 transition-all shadow-lg shadow-amber-400/20 active:scale-95 flex items-center justify-center gap-2.5"
+                            >
+                                <Lock size={16} /> Subscribe to Unlock
+                            </Link>
+                        ) : (
+                            <>
+                                <Link
+                                    to={`/books/${book.id}/read`}
+                                    className="px-10 py-4 bg-emerald-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-800 transition-all shadow-xl shadow-emerald-900/20 active:scale-95 flex items-center justify-center gap-2.5"
+                                >
+                                    <BookOpen size={16} /> Read Manuscript
+                                </Link>
+                                <button
+                                    onClick={handleDownload}
+                                    className="px-10 py-4 bg-white border border-gray-200 text-gray-900 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-50 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2.5"
+                                >
+                                    <Download size={16} /> Download PDF
+                                </button>
+                            </>
+                        )}
+                    </div>
+
+                    {isPremiumLocked && (
+                        <div className="p-5 rounded-2xl bg-amber-50 border border-amber-100 flex gap-4 max-w-xl">
+                            <ShieldCheck className="text-amber-600 shrink-0" size={20} />
+                            <div>
+                                <p className="text-[10px] font-black text-amber-900 uppercase tracking-widest mb-1">Premium Exclusive</p>
+                                <p className="text-[11px] font-medium text-amber-800 leading-relaxed">
+                                    Unlock full access and offline downloads with a premium membership.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
-          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-6 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-16">
+            {/* Left Column */}
+            <div className="space-y-10">
+                <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                    <h2 className="text-xs font-black text-gray-900 uppercase tracking-widest mb-6 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-emerald-900 rounded-full"></div>
+                        Abstract & Overview
+                    </h2>
+                    <div className="prose prose-slate max-w-none">
+                        <p className="text-gray-600 text-base leading-relaxed font-medium whitespace-pre-line">
+                            {book.description || 'No detailed description available for this resource.'}
+                        </p>
+                    </div>
+                </section>
+
+                <section>
+                    <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 ml-1">Metadata Tags</h2>
+                    <div className="flex flex-wrap gap-2">
+                        {book.tags?.map((tag: string) => (
+                            <span key={tag} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-[9px] font-black uppercase tracking-widest text-gray-500 hover:text-emerald-700 hover:border-emerald-200 transition-all cursor-default">
+                                {tag}
+                            </span>
+                        ))}
+                    </div>
+                </section>
+            </div>
+
+            {/* Right Column: Related */}
+            <aside className="space-y-8">
+                <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-emerald-900 rounded-full"></div>
+                    Related Modules
+                </h3>
+                <div className="space-y-5">
+                    {related.map((rel: any) => (
+                        <Link to={`/books/${rel.slug}`} key={rel.id} className="flex gap-4 group p-3 rounded-2xl hover:bg-white transition-all hover:shadow-sm border border-transparent hover:border-gray-100">
+                            <div className="w-16 h-22 rounded-xl overflow-hidden bg-gray-50 shrink-0 shadow-sm border border-gray-100">
+                                <img src={getImageUrl(rel.cover_image)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
+                            </div>
+                            <div className="flex flex-col justify-center min-w-0">
+                                <p className="text-[8px] font-black text-emerald-700 uppercase tracking-tighter mb-1">{rel.category?.name}</p>
+                                <h4 className="font-bold text-[13px] text-gray-900 line-clamp-1 group-hover:text-emerald-900 transition-colors leading-tight">{rel.title}</h4>
+                                <p className="text-[10px] text-gray-400 font-medium mt-0.5 truncate">{rel.author}</p>
+                            </div>
+                        </Link>
+                    ))}
+                    {related.length === 0 && <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest italic ml-2">No related nodes</p>}
+                </div>
+            </aside>
         </div>
       </div>
     </div>

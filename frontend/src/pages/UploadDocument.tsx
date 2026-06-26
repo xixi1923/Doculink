@@ -42,14 +42,16 @@ export default function UploadDocument(): React.JSX.Element {
     department_id: '',
     department_full_name: '',
     department_short_name: '',
+    major_id: '',
+    major_name: '',
     education_category: '', // High School or University
     education_level_id: '',
-    subject: '',
+    subject_name: '',
     resource_level: '',
     publisher: '',
     publication_year: '',
     isbn: '',
-    author: '', // Added since it was used but missing from initial state
+    author: '',
   })
   const [file, setFile] = useState<File | null>(null)
   const [cover, setCover] = useState<File | null>(null)
@@ -290,6 +292,7 @@ export default function UploadDocument(): React.JSX.Element {
                   <div className="space-y-1.5 relative">
                     <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Department Full Name</label>
                     <input
+                      required
                       value={formData.department_full_name}
                       onChange={e => handleDepartmentSearch(e.target.value)}
                       onFocus={() => formData.department_full_name.length > 1 && setShowDeptSuggestions(true)}
@@ -314,12 +317,13 @@ export default function UploadDocument(): React.JSX.Element {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Department Short Name</label>
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Major / Specialization</label>
                     <input
-                      value={formData.department_short_name}
-                      onChange={e => setFormData({...formData, department_short_name: e.target.value})}
+                      required
+                      value={formData.major_name}
+                      onChange={e => setFormData({...formData, major_name: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none transition-all"
-                      placeholder="e.g. ITE"
+                      placeholder="e.g. Software Engineering"
                     />
                   </div>
 
@@ -327,6 +331,7 @@ export default function UploadDocument(): React.JSX.Element {
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Education Category</label>
                     <select
+                      required
                       value={formData.education_category}
                       onChange={e => setFormData({...formData, education_category: e.target.value, education_level_id: ''})}
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none appearance-none"
@@ -343,6 +348,7 @@ export default function UploadDocument(): React.JSX.Element {
                         {formData.education_category === 'High School' ? 'Grade Level' : 'Degree Level'}
                       </label>
                       <select
+                        required
                         value={formData.education_level_id}
                         onChange={e => setFormData({...formData, education_level_id: e.target.value})}
                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none appearance-none"
@@ -352,18 +358,6 @@ export default function UploadDocument(): React.JSX.Element {
                           <option key={level.id} value={level.id}>{level.name}</option>
                         ))}
                       </select>
-                    </div>
-                  )}
-
-                  {formData.education_category && (
-                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Additional Education Info</label>
-                      <input
-                        value={formData.resource_level}
-                        onChange={e => setFormData({...formData, resource_level: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none transition-all"
-                        placeholder="e.g. Science stream, Honors, etc."
-                      />
                     </div>
                   )}
 
@@ -413,8 +407,9 @@ export default function UploadDocument(): React.JSX.Element {
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Subject / Course</label>
                         <input
-                          value={formData.subject}
-                          onChange={e => setFormData({...formData, subject: e.target.value})}
+                          required
+                          value={formData.subject_name}
+                          onChange={e => setFormData({...formData, subject_name: e.target.value})}
                           className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-600/20"
                           placeholder="e.g. Data Structures"
                         />
@@ -427,13 +422,10 @@ export default function UploadDocument(): React.JSX.Element {
                           className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-600/20 outline-none appearance-none"
                         >
                           <option value="">Select Level (Optional)</option>
-                          <option value="High School">High School</option>
                           <option value="Year 1">Year 1</option>
                           <option value="Year 2">Year 2</option>
                           <option value="Year 3">Year 3</option>
                           <option value="Year 4">Year 4</option>
-                          <option value="Master">Master</option>
-                          <option value="PhD">PhD</option>
                           <option value="Other">Other</option>
                         </select>
                       </div>

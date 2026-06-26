@@ -32,9 +32,8 @@ export interface Document {
   file_type: string;
   category_id: number;
   user_id: number;
-  views_count: number;
-  downloads_count: number;
-  download_count?: number;
+  view_count: number;
+  download_count: number;
   likes_count?: number;
   is_liked?: boolean;
   is_favorited?: boolean;
@@ -63,6 +62,6 @@ export interface Book {
 }
 
 export interface HomeStats {
-  top_universities: { university: string; documents_count: number }[];
+  top_universities: { university: string; collaborators_count: number }[];
   total_docs: number;
 }

@@ -37,6 +37,10 @@ class SocialController extends Controller
 
         if ($favorite) {
             $favorite->delete();
+            if ($docId) {
+                \App\Models\Document::find($docId)?->decrement('save_count');
+                \App\Models\SavedDocument::where('user_id', $userId)->where('document_id', $docId)->delete();
+            }
             return response()->json(['favorited' => false]);
         } else {
             Favorite::create([
@@ -44,6 +48,11 @@ class SocialController extends Controller
                 'document_id' => $docId,
                 'book_id' => $bookId,
             ]);
+            if ($docId) {
+                \App\Models\Document::find($docId)?->increment('save_count');
+                \App\Models\SavedDocument::create(['user_id' => $userId, 'document_id' => $docId]);
+                \App\Models\UserDocumentActivity::create(['user_id' => $userId, 'document_id' => $docId, 'action' => 'save']);
+            }
             return response()->json(['favorited' => true]);
         }
     }
@@ -74,9 +83,10 @@ class SocialController extends Controller
 
         if ($like) {
             $like->delete();
-            // Optional: decrement likes_count if columns exist
-            // if ($docId) Document::find($docId)?->decrement('likes_count');
-            // else Book::find($bookId)?->decrement('likes_count');
+            if ($docId) {
+                \App\Models\Document::find($docId)?->decrement('like_count');
+                \App\Models\DocumentLike::where('user_id', $userId)->where('document_id', $docId)->delete();
+            }
             return response()->json(['liked' => false]);
         } else {
             Like::create([
@@ -84,9 +94,11 @@ class SocialController extends Controller
                 'likeable_id' => $docId ?: $bookId,
                 'likeable_type' => $docId ? Document::class : Book::class,
             ]);
-            // Optional: increment likes_count if columns exist
-            // if ($docId) Document::find($docId)?->increment('likes_count');
-            // else Book::find($bookId)?->increment('likes_count');
+            if ($docId) {
+                \App\Models\Document::find($docId)?->increment('like_count');
+                \App\Models\DocumentLike::create(['user_id' => $userId, 'document_id' => $docId]);
+                \App\Models\UserDocumentActivity::create(['user_id' => $userId, 'document_id' => $docId, 'action' => 'like']);
+            }
 
             return response()->json(['liked' => true]);
         }

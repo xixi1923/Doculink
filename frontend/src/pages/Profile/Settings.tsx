@@ -15,7 +15,9 @@ import {
   Link as LinkIcon,
   MapPin,
   GraduationCap,
-  Music2
+  Music2,
+  CheckCircle2,
+  X
 } from 'lucide-react'
 import { getProfile, updateProfile, updateAvatar, changePasswordApi, deleteAccountApi, getUniversities } from '@/api/authApi'
 import { User as UserType } from '@/types'
@@ -28,6 +30,7 @@ export default function Settings(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [profile, setProfile] = useState<Partial<any>>({
     name: '',
@@ -151,6 +154,7 @@ export default function Settings(): React.JSX.Element {
       }
 
       setSaveSuccess(true)
+      setShowSuccessModal(true)
       setTimeout(() => setSaveSuccess(false), 3000)
     } catch (error: any) {
       console.error('Failed to update profile', error)
@@ -522,6 +526,41 @@ export default function Settings(): React.JSX.Element {
               </button>
             </div>
           </section>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border border-slate-100 dark:border-gray-800 animate-in zoom-in-95 duration-300 relative overflow-hidden">
+            {/* Background elements */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl" />
+
+            <button
+                onClick={() => setShowSuccessModal(false)}
+                className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+                <X size={20} />
+            </button>
+
+            <div className="flex flex-col items-center text-center">
+              <div className="w-20 h-20 bg-teal-50 dark:bg-teal-500/10 rounded-[2rem] flex items-center justify-center text-teal-600 mb-6 shadow-inner">
+                <CheckCircle2 size={40} />
+              </div>
+
+              <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">Update Successful</h3>
+              <p className="text-sm text-slate-500 dark:text-gray-400 font-medium leading-relaxed mb-8">
+                Your scholar profile identity has been successfully synchronized with the DocuLink mainframe.
+              </p>
+
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-teal-500/20"
+              >
+                Return to Workspace
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

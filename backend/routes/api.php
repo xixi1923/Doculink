@@ -16,11 +16,15 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\MajorController;
+use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\DocumentManagementController;
 use App\Http\Controllers\Auth\FirebaseAuthController;
+use App\Http\Controllers\Api\RecommendationController;
 use Illuminate\Support\Facades\Route;
 
 // Public Routes
@@ -28,11 +32,20 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/firebase-login', [FirebaseAuthController::class, 'login']);
 
+// Recommendation and Trending
+Route::get('/home-feed', [RecommendationController::class, 'getHomeFeed']);
+Route::get('/recommendations', [RecommendationController::class, 'getRecommendations']);
+Route::get('/trending', [RecommendationController::class, 'getTrending']);
+Route::get('/popular-in-department', [RecommendationController::class, 'getPopularInDepartment']);
+
 // Guest Access Routes (Read-only)
 Route::get('/universities', [UniversityController::class, 'index']);
 Route::get('/universities/{id}', [UniversityController::class, 'show']);
 Route::get('/departments', [DepartmentController::class, 'index']);
 Route::get('/education-levels', [EducationLevelController::class, 'index']);
+Route::get('/document-types', [DocumentTypeController::class, 'index']);
+Route::get('/subjects', [SubjectController::class, 'index']);
+Route::get('/majors', [MajorController::class, 'index']);
 Route::get('/books', [BookController::class, 'index']);
 Route::get('/books/categories', [BookController::class, 'categories']);
 Route::get('/books/{id}', [BookController::class, 'show']);
@@ -60,6 +73,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/change-password', [AuthController::class, 'changePassword']);
     Route::delete('/profile', [AuthController::class, 'deleteAccount']);
     Route::get('/debug/r2-connection', [AuthController::class, 'testR2Connection']);
+
+    Route::get('/search-history', [DocumentController::class, 'getSearchHistory']);
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);

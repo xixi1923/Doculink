@@ -54,8 +54,11 @@ export default function Search() {
   const fetchResults = async () => {
     setLoading(true)
     try {
-      // Logic for "All Results" tab: defaults to documents or mixed if backend supports
-      const endpoint = activeTab === 'books' ? '/books' : '/documents'
+      let endpoint = '/documents'
+      if (activeTab === 'recommended') {
+        endpoint = '/recommendations'
+      }
+
       const params: any = { search: query }
 
       if (selectedCategories.length > 0) {
@@ -228,7 +231,7 @@ export default function Search() {
                 {[
                 { id: 'all', label: 'All Results' },
                 { id: 'documents', label: 'Documents' },
-                { id: 'books', label: 'Books' }
+                { id: 'recommended', label: 'Recommended For You' }
                 ].map(tab => (
                 <button
                     key={tab.id}
@@ -302,6 +305,11 @@ export default function Search() {
                         </Link>
 
                         <div className="flex items-center gap-6 text-slate-400">
+                             <div className="flex items-center gap-1.5" title="Views">
+                                <Eye size={15} className="opacity-60" />
+                                <span className="text-[11px] font-bold text-slate-700">{item.view_count || 0}</span>
+                             </div>
+
                              <button
                                 onClick={(e) => handleLike(item.id, e)}
                                 className="flex items-center gap-1.5 group/icon"

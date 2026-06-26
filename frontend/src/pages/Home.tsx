@@ -10,34 +10,27 @@ import {
   ChevronLeft,
   Sparkles,
   GraduationCap,
-  Layers
+  Layers,
+  MessageSquare
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { getCategories } from '@/api/categoryApi'
 import { getDocuments, downloadDocument } from '@/api/documentApi'
 import { getHomeStats } from '@/api/statsApi'
+import api from '@/api/authApi'
 import { useAuthStore } from '@/store/authStore'
 import { Category, Document, HomeStats } from '@/types'
 
-// ================= UI HELPERS =================
-const getCategoryUI = (slug: string) => {
-  const ui: Record<string, { icon: string; color: string }> = {
-    'exam-papers': { icon: '📝', color: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' },
-    'lecture-notes': { icon: '📚', color: 'bg-violet-500/10 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400' },
-    'summaries': { icon: '📋', color: 'bg-sky-500/10 text-sky-600 dark:bg-sky-500/20 dark:text-sky-400' },
-    'assignments': { icon: '✍️', color: 'bg-teal-500/10 text-teal-600 dark:bg-teal-500/20 dark:text-teal-400' },
-    'thesis': { icon: '🎓', color: 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' },
-    'presentations': { icon: '💻', color: 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400' },
-  }
-  return ui[slug] || { icon: '📄', color: 'bg-slate-500/10 text-slate-600 dark:bg-gray-500/20 dark:text-gray-400' }
-}
 
-const formatNumber = (num: number | undefined) => {
+
+const formatNumber = (num: number | string | undefined) => {
   if (num === undefined || num === null) return '0'
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'k'
+  const n = typeof num === 'string' ? parseInt(num) : num
+  if (isNaN(n)) return '0'
+  if (n >= 1000) {
+    return (n / 1000).toFixed(1) + 'k'
   }
-  return num.toString()
+  return n.toString()
 }
 
 const getDocumentImage = (id: number) => {
@@ -53,7 +46,8 @@ const getDocumentImage = (id: number) => {
 export default function Home(): React.JSX.Element {
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [categories, setCategories] = useState<Category[]>([])
-  const [documents, setDocuments] = useState<Document[]>([])
+  const [recommendedDocs, setRecommendedDocs] = useState<Document[]>([])
+  const [trendingDocs, setTrendingDocs] = useState<Document[]>([])
   const [stats, setStats] = useState<HomeStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { token } = useAuthStore()
@@ -62,13 +56,14 @@ export default function Home(): React.JSX.Element {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [cats, docs, homeStats] = await Promise.all([
+        const [cats, feedRes, homeStats] = await Promise.all([
           getCategories(),
-          getDocuments({}),
+          api.get('/home-feed'),
           getHomeStats()
         ])
         setCategories(cats)
-        setDocuments(docs)
+        setRecommendedDocs(feedRes.data.recommended || [])
+        setTrendingDocs(feedRes.data.trending || [])
         setStats(homeStats)
       } catch (error) {
         console.error('Failed to fetch data', error)
@@ -92,12 +87,14 @@ export default function Home(): React.JSX.Element {
         if (res.url) {
             window.open(res.url, '_blank')
             // Update local state if needed
-            setDocuments(prev => prev.map(item => {
+            const updateCount = (prev: Document[]) => prev.map(item => {
                 if (item.id === id) {
                     return { ...item, download_count: (item.download_count || 0) + 1 }
                 }
                 return item
-            }))
+            })
+            setRecommendedDocs(updateCount)
+            setTrendingDocs(updateCount)
         }
     } catch (err) {
         console.error('Failed to download', err)
@@ -161,46 +158,7 @@ export default function Home(): React.JSX.Element {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* ================= BROWSE CATEGORIES MODULE =================            <div className="mb-14">
-          <div className="flex items-end justify-between mb-6 px-1">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Browse by Material Type</h2>
-              <p className="text-sm text-slate-600 font-medium">Categorized resource index grids</p>
-            </div>
-            <Link to="/search" className="text-sm font-bold text-teal-600 hover:text-teal-700 transition-colors flex items-center gap-0.5 group">
-              View all formats <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {isLoading ? (
-              [...Array(6)].map((_, i) => (
-                <div key={i} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 animate-pulse min-h-[140px] flex flex-col items-center justify-center">
-                  <div className="w-11 h-11 bg-slate-100 rounded-xl mb-3" />
-                  <div className="h-4 bg-slate-100 rounded w-20 mb-2" />
-                  <div className="h-3 bg-slate-100 rounded w-12" />
-                </div>
-              ))
-            ) : (
-              categories.map((cat) => {
-                const ui = getCategoryUI(cat.slug)
-                return (
-                  <Link
-                    to={`/search?category=${cat.id}`}
-                    key={cat.id}
-                    className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:border-teal-500/20 hover:-translate-y-0.5 transition-all cursor-pointer group text-center flex flex-col items-center justify-center min-h-[140px]"
-                  >
-                    <div className={`w-11 h-11 ${ui.color} rounded-xl flex items-center justify-center text-xl mb-3 group-hover:scale-105 transition-transform`}>
-                      {ui.icon}
-                    </div>
-                    <h3 className="font-bold text-slate-900 text-sm mb-0.5 truncate w-full">{cat.name}</h3>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">{cat.documents_count || 0}+ Files</p>
-                  </Link>
-                )
-              })
-            )}
-          </div>
-        </div>
 
         {/* ================= RECOMMENDED STORAGE GALLERY ================= */}
         <div className="mb-14">
@@ -234,13 +192,20 @@ export default function Home(): React.JSX.Element {
                 </div>
               ))
             ) : (
-              documents.slice(0, 4).map((doc) => (
+              recommendedDocs.slice(0, 4).map((doc) => (
                 <div key={doc.id} className="group flex">
                   <div className="bg-white rounded-[24px] overflow-hidden border border-slate-200 flex flex-col w-full hover:shadow-xl hover:border-teal-500/20 hover:-translate-y-1 transition-all duration-300 min-h-[400px]">
 
                     {/* Aspect Document Face Frame */}
-                    <div className="relative aspect-[4/3] overflow-hidden bg-slate-50">
-                      <img src={getDocumentImage(doc.id)} alt={doc.title} className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700" referrerPolicy="no-referrer" />
+                    <div className="relative aspect-[4/3] overflow-hidden bg-slate-50 flex items-center justify-center">
+                      {doc.thumbnail ? (
+                        <img src={doc.thumbnail} alt={doc.title} className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-slate-300">
+                           <FileText size={48} strokeWidth={1} />
+                           <span className="text-[10px] font-black uppercase tracking-widest mt-2">{doc.file_type || 'FILE'}</span>
+                        </div>
+                      )}
                       <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-2.5 py-0.5 rounded-md text-[10px] font-bold text-teal-700 uppercase tracking-wider shadow-sm border border-slate-100">
                         {doc.category?.name || 'Document'}
                       </div>
@@ -272,8 +237,9 @@ export default function Home(): React.JSX.Element {
                           <span className="text-xs font-bold text-slate-700 truncate group-hover/user:text-teal-600 transition-colors">{doc.user?.name || 'Anonymous'}</span>
                         </Link>
                         <div className="flex items-center gap-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide shrink-0">
-                          <span className="flex items-center gap-0.5"><Eye size={12} /> {formatNumber(doc.views_count)}</span>
+                          <span className="flex items-center gap-0.5"><Eye size={12} /> {formatNumber(doc.view_count)}</span>
                           <span className="flex items-center gap-0.5"><Download size={12} /> {formatNumber(doc.download_count)}</span>
+                          <span className="flex items-center gap-0.5"><MessageSquare size={12} /> {formatNumber(doc.comments_count)}</span>
                         </div>
                       </div>
                     </div>
@@ -327,7 +293,7 @@ export default function Home(): React.JSX.Element {
                               </div>
                               <span className="font-bold text-slate-600 dark:text-gray-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{uni.university}</span>
                            </div>
-                           <span className="text-[11px] font-bold text-slate-300 dark:text-gray-600 uppercase tracking-wider">{formatNumber(uni.documents_count)} Docs</span>
+                           <span className="text-[11px] font-bold text-slate-300 dark:text-gray-600 uppercase tracking-wider">{formatNumber(uni.collaborators_count)} Peers</span>
                         </div>
                      ))
                    )}
@@ -348,14 +314,14 @@ export default function Home(): React.JSX.Element {
                         <div key={i} className="h-14 bg-slate-50 dark:bg-gray-800 animate-pulse rounded-xl" />
                       ))
                    ) : (
-                     documents.sort((a, b) => b.views_count - a.views_count).slice(0, 4).map((doc, i) => (
+                     trendingDocs.slice(0, 4).map((doc, i) => (
                         <Link to={`/documents/${doc.id}`} key={i} className="p-3 rounded-xl bg-slate-50/70 dark:bg-gray-800/50 hover:bg-white dark:hover:bg-gray-800 hover:shadow-sm transition-all border border-transparent hover:border-slate-100 dark:hover:border-gray-700 cursor-pointer flex gap-3 items-center">
                            <div className="w-9 h-9 bg-white dark:bg-gray-900 rounded-lg shadow-xs flex items-center justify-center text-slate-400 dark:text-gray-500 shrink-0">
                               <FileText size={16} />
                            </div>
                            <div className="min-w-0">
                               <p className="font-bold text-slate-700 dark:text-gray-200 text-sm truncate">{doc.title}</p>
-                              <p className="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider mt-0.5">{formatNumber(doc.views_count)} Views</p>
+                              <p className="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider mt-0.5">{formatNumber(doc.view_count)} Views</p>
                            </div>
                         </Link>
                      ))

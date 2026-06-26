@@ -13,20 +13,21 @@ class Document extends Model
         'title',
         'description',
         'file_path',
-        'thumbnail',
         'file_type',
         'file_size',
         'category_id',
         'university_id',
         'department_id',
         'education_level_id',
+        'subject_id',
+        'major_id',
         'user_id',
-        'subject',
         'resource_level',
-        'tags',
         'status',
         'view_count',
         'download_count',
+        'like_count',
+        'save_count',
     ];
 
     public function user()
@@ -44,6 +45,11 @@ class Document extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function documentType()
+    {
+        return $this->belongsTo(DocumentType::class);
+    }
+
     public function department()
     {
         return $this->belongsTo(Department::class);
@@ -52,6 +58,16 @@ class Document extends Model
     public function educationLevel()
     {
         return $this->belongsTo(EducationLevel::class);
+    }
+
+    public function subject()
+    {
+        return $this->belongsTo(Subject::class);
+    }
+
+    public function major()
+    {
+        return $this->belongsTo(Major::class);
     }
 
     public function comments()
@@ -64,8 +80,33 @@ class Document extends Model
         return $this->hasMany(Favorite::class);
     }
 
+    public function savedByUsers()
+    {
+        return $this->hasMany(SavedDocument::class);
+    }
+
     public function likes()
     {
         return $this->morphMany(Like::class, 'likeable');
+    }
+
+    public function documentLikes()
+    {
+        return $this->hasMany(DocumentLike::class);
+    }
+
+    public function views()
+    {
+        return $this->hasMany(DocumentView::class);
+    }
+
+    public function statistics()
+    {
+        return $this->hasOne(DocumentStatistic::class);
+    }
+
+    public function activities()
+    {
+        return $this->hasMany(UserDocumentActivity::class);
     }
 }

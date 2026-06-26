@@ -11,7 +11,7 @@ class UserManagementController extends Controller
 {
     public function index()
     {
-        $users = User::select('id', 'name', 'email', 'role', 'created_at')
+        $users = User::select('id', 'name', 'email', 'role', 'status', 'is_premium', 'premium_until', 'created_at')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -22,9 +22,11 @@ class UserManagementController extends Controller
     {
         $user = User::findOrFail($id);
 
-        if ($user->role === 'admin') {
-            $user->role = 'user';
+        if ($user->hasRole('admin')) {
+            $user->syncRoles(['student']);
+            $user->role = 'student';
         } else {
+            $user->syncRoles(['admin']);
             $user->role = 'admin';
         }
 

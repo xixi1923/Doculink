@@ -15,6 +15,8 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             BookCategorySeeder::class,
             RealUniversitySeeder::class,
+            EducationLevelSeeder::class,
+            DocumentTypeSeeder::class,
         ]);
 
         $admin = User::updateOrCreate(

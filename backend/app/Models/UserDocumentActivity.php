@@ -5,19 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class DownloadLog extends Model
+class UserDocumentActivity extends Model
 {
     use HasFactory;
+
+    const UPDATED_AT = null;
+
+    protected $table = 'user_document_activity';
 
     protected $fillable = [
         'user_id',
         'document_id',
-        'book_id',
-        'action_type',
-        'downloaded_at',
+        'action',
     ];
-
-    public $timestamps = false;
 
     public function user()
     {
@@ -27,10 +27,5 @@ class DownloadLog extends Model
     public function document()
     {
         return $this->belongsTo(Document::class);
-    }
-
-    public function book()
-    {
-        return $this->belongsTo(Book::class);
     }
 }

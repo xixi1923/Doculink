@@ -6,7 +6,7 @@ export const getDocuments = async (filters: any) => {
 }
 
 export const getTrendingDocuments = async () => {
-  const response = await api.get('/documents/trending')
+  const response = await api.get('/trending')
   return response.data
 }
 
@@ -32,5 +32,10 @@ export const downloadDocument = async (id: string) => {
 
 export const deleteDocument = async (id: string) => {
   const response = await api.delete(`/documents/${id}`)
+  return response.data
+}
+
+export const getSearchHistoryApi = async () => {
+  const response = await api.get('/search-history')
   return response.data
 }

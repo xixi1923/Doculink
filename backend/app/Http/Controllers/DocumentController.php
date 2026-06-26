@@ -3,49 +3,74 @@
 namespace App\Http\Controllers;
 
 use App\Services\DocumentService;
+use App\Services\RecommendationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class DocumentController extends Controller
 {
     protected $documentService;
+    protected $recommendationService;
 
-    public function __construct(DocumentService $documentService)
+    public function __construct(DocumentService $documentService, RecommendationService $recommendationService)
     {
         $this->documentService = $documentService;
+        $this->recommendationService = $recommendationService;
     }
 
     public function index(Request $request)
     {
+        if ($request->has('search') && !empty($request->search) && Auth::check()) {
+            \App\Models\SearchHistory::create([
+                'user_id' => Auth::id(),
+                'keyword' => $request->search
+            ]);
+        }
         return response()->json($this->documentService->getAllDocuments($request->all()));
     }
 
-    public function trending()
+    public function getSearchHistory()
     {
-        return response()->json($this->documentService->getTrendingDocuments());
+        $history = \App\Models\SearchHistory::where('user_id', Auth::id())
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get();
+
+        return response()->json($history);
+    }
+
+    public function trending(Request $request)
+    {
+        $user = Auth::guard('sanctum')->user() ?: $request->user();
+        $filters = $request->only(['department_id', 'major_id', 'education_level_id', 'subject_id']);
+        return response()->json($this->recommendationService->getTrending(20, $filters, $user));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'required|string',
             'category_id' => 'required|exists:categories,id',
             'university_id' => 'nullable|exists:universities,id',
+            // Department can be an ID or names for auto-creation
             'department_id' => 'nullable|exists:departments,id',
-            'department_full_name' => 'nullable|string|max:255',
+            'department_full_name' => 'required_without:department_id|string|max:255',
             'department_short_name' => 'nullable|string|max:255',
-            'education_level_id' => 'nullable|exists:education_levels,id',
+            'education_level_id' => 'required|exists:education_levels,id',
+            'subject_id' => 'nullable|exists:subjects,id',
+            'subject_name' => 'required_without:subject_id|string|max:255',
+            'major_id' => 'nullable|exists:majors,id',
+            'major_name' => 'nullable|string|max:255',
             'resource_level' => 'nullable|string|max:255',
-            'subject' => 'nullable|string|max:255',
-            'tags' => 'nullable|string',
             'file' => 'required|file|mimes:pdf,docx,pptx,jpg,jpeg,png|max:51200',
         ]);
 
         $data = $request->only([
-            'title', 'description', 'subject', 'category_id', 'university_id',
+            'title', 'description', 'category_id', 'university_id',
             'department_id', 'department_full_name', 'department_short_name',
-            'education_level_id', 'resource_level', 'tags'
+            'education_level_id', 'subject_id', 'subject_name',
+            'major_id', 'major_name', 'resource_level'
         ]);
         $data['user_id'] = Auth::id();
         $data['status'] = 'pending';
@@ -59,7 +84,31 @@ class DocumentController extends Controller
     {
         try {
             $document = $this->documentService->getDocumentDetails($id);
-            $document->increment('view_count');
+
+            // Use cache to throttle view counts (prevents double-counting in dev/rapid refreshes)
+            $viewKey = 'doc_viewed_' . $id . '_' . request()->ip() . '_' . (Auth::id() ?: 'guest');
+            if (!\Illuminate\Support\Facades\Cache::has($viewKey)) {
+                $document->increment('view_count');
+                \Illuminate\Support\Facades\Cache::put($viewKey, true, 60); // 1 minute cooldown
+            }
+
+            // Record view activity
+            if (Auth::check()) {
+                \App\Models\UserDocumentActivity::create([
+                    'user_id' => Auth::id(),
+                    'document_id' => $id,
+                    'action' => 'view'
+                ]);
+                \App\Models\DocumentView::create([
+                    'user_id' => Auth::id(),
+                    'document_id' => $id
+                ]);
+            } else {
+                \App\Models\DocumentView::create([
+                    'user_id' => null,
+                    'document_id' => $id
+                ]);
+            }
 
             // Load uploader stats to make the sidebar dynamic
             $user = $document->user;
@@ -125,6 +174,15 @@ class DocumentController extends Controller
             'downloaded_at' => now(),
         ]);
 
+        // Record download activity
+        if (Auth::check()) {
+            \App\Models\UserDocumentActivity::create([
+                'user_id' => Auth::id(),
+                'document_id' => $id,
+                'action' => 'download'
+            ]);
+        }
+
         return response()->json(['url' => $document->file_path]);
     }
 
@@ -143,7 +201,7 @@ class DocumentController extends Controller
     {
         $document = \App\Models\Document::findOrFail($id);
 
-        if ($document->user_id !== Auth::id() && Auth::user()->role !== 'admin') {
+        if ($document->user_id !== Auth::id() && !Auth::user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

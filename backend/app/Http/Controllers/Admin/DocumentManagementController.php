@@ -11,7 +11,7 @@ class DocumentManagementController extends Controller
 {
     public function index()
     {
-        $documents = Document::with(['user', 'category'])
+        $documents = Document::with(['user', 'category', 'department', 'subject'])
             ->orderBy('created_at', 'desc')
             ->get();
 

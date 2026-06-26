@@ -69,7 +69,12 @@ class CommunityController extends Controller
     public function showQuestion($slug)
     {
         $question = $this->questionService->getQuestionWithAnswers($slug);
-        $question->increment('views');
+
+        $viewKey = 'question_viewed_' . $question->id . '_' . request()->ip() . '_' . (Auth::id() ?: 'guest');
+        if (!\Illuminate\Support\Facades\Cache::has($viewKey)) {
+            $question->increment('views');
+            \Illuminate\Support\Facades\Cache::put($viewKey, true, 60);
+        }
 
         return response()->json($question);
     }

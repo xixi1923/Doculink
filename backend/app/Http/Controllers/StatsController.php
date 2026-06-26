@@ -11,14 +11,14 @@ class StatsController extends Controller
 {
     public function homeStats()
     {
-        $topUniversities = University::withCount('documents')
-            ->orderBy('documents_count', 'desc')
+        $topUniversities = University::withCount('users')
+            ->orderBy('users_count', 'desc')
             ->limit(5)
             ->get()
             ->map(function ($uni) {
                 return [
                     'university' => $uni->short_name ?: $uni->name,
-                    'documents_count' => $uni->documents_count
+                    'collaborators_count' => $uni->users_count
                 ];
             });
 

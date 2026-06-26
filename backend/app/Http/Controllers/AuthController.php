@@ -118,6 +118,12 @@ class AuthController extends Controller
             'university',
             'followers',
             'followings',
+            'documents' => function($q) {
+                $q->with(['category', 'university'])->withCount(['comments', 'likes']);
+            },
+            'books' => function($q) {
+                $q->with(['category']);
+            },
             'favorites' => function($q) {
                 $q->orderBy('created_at', 'desc');
             },
@@ -144,7 +150,7 @@ class AuthController extends Controller
 
         // Convert empty strings to null for specific fields to avoid validation/database issues
         $input = $request->all();
-        $nullableFields = ['university_id', 'username', 'bio', 'major', 'school', 'affiliation', 'country', 'academic_title'];
+        $nullableFields = ['university_id', 'department_id', 'education_level_id', 'major_id', 'username', 'bio', 'major', 'school', 'affiliation', 'country', 'academic_title'];
 
         foreach ($nullableFields as $field) {
             if (isset($input[$field]) && $input[$field] === '') {
@@ -167,6 +173,9 @@ class AuthController extends Controller
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
             'bio' => 'nullable|string|max:2000',
             'university_id' => 'nullable|exists:universities,id',
+            'department_id' => 'nullable|exists:departments,id',
+            'education_level_id' => 'nullable|exists:education_levels,id',
+            'major_id' => 'nullable|exists:majors,id',
             'major' => 'nullable|string|max:255',
             'school' => 'nullable|string|max:255',
             'affiliation' => 'nullable|string|max:255',
@@ -181,14 +190,15 @@ class AuthController extends Controller
         ]);
 
         $user->update($request->only([
-            'name', 'username', 'email', 'bio', 'university_id', 'major',
+            'name', 'username', 'email', 'bio', 'university_id', 'department_id',
+            'education_level_id', 'major_id', 'major',
             'school', 'affiliation', 'country', 'academic_title',
             'research_interests', 'social_links'
         ]));
 
         return response()->json([
             'message' => 'Profile updated successfully',
-            'user' => $user->load('university'),
+            'user' => $user->load(['university', 'department', 'educationLevel']),
         ]);
     }
 

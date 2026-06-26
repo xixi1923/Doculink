@@ -58,6 +58,9 @@ export default function Notifications(): React.JSX.Element {
     try {
       await markNotificationAsRead(id)
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n))
+
+      // Dispatch custom event to trigger navbar update immediately
+      window.dispatchEvent(new CustomEvent('notification-marked-read'))
     } catch (error) {
       console.error(error)
     }
@@ -67,13 +70,18 @@ export default function Notifications(): React.JSX.Element {
     try {
       await deleteNotificationApi(id)
       setNotifications(prev => prev.filter(n => n.id !== id))
+
+      // Dispatch custom event to trigger navbar update immediately
+      window.dispatchEvent(new CustomEvent('notification-marked-read'))
     } catch (error) {
       console.error(error)
     }
   }
 
   const handleNotificationClick = async (n: NotificationItem) => {
-    if (!n.read_at) markAsRead(n.id)
+    if (!n.read_at) {
+      await markAsRead(n.id)
+    }
 
     // Redirection logic
     if (n.type === 'document_like' || n.type === 'document_comment' || n.type === 'comment_reply' || n.type === 'comment_like') {
@@ -115,6 +123,16 @@ export default function Notifications(): React.JSX.Element {
   const filteredNotifications = notifications.filter(n => filter === 'all' ? true : !n.read_at)
   const unreadCount = notifications.filter(n => !n.read_at).length
 
+  const markAllAsRead = async () => {
+    try {
+      await markAllNotificationsAsRead()
+      setNotifications(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })))
+      window.dispatchEvent(new CustomEvent('notification-marked-read'))
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
   return (
     <div className="max-w-2xl mx-auto py-12 px-4 sm:px-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom duration-500">
 
@@ -130,7 +148,7 @@ export default function Notifications(): React.JSX.Element {
 
         {unreadCount > 0 && (
           <button
-            onClick={() => markAllNotificationsAsRead().then(fetchNotifications)}
+            onClick={markAllAsRead}
             className="text-teal-600 hover:text-teal-700 text-xs font-bold uppercase tracking-wider transition-colors duration-200"
           >
             Mark all as read

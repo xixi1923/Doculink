@@ -41,7 +41,7 @@ class CommentController extends Controller
         try {
             $comment = Comment::findOrFail($id);
 
-            if ($comment->user_id !== Auth::id() && Auth::user()->role !== 'admin') {
+            if ($comment->user_id !== Auth::id() && !Auth::user()->hasRole('admin')) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
 

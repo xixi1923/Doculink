@@ -24,8 +24,7 @@ class DocumentRepository extends BaseRepository
         if (isset($filters['search'])) {
             $query->where(function($q) use ($filters) {
                 $q->where('title', 'like', '%' . $filters['search'] . '%')
-                  ->orWhere('description', 'like', '%' . $filters['search'] . '%')
-                  ->orWhere('subject', 'like', '%' . $filters['search'] . '%');
+                  ->orWhere('description', 'like', '%' . $filters['search'] . '%');
             });
         }
 
@@ -37,14 +36,35 @@ class DocumentRepository extends BaseRepository
             $query->where('university_id', $filters['university_id']);
         }
 
+        if (isset($filters['department_id'])) {
+            $query->where('department_id', $filters['department_id']);
+        }
+
+        if (isset($filters['major_id'])) {
+            $query->where('major_id', $filters['major_id']);
+        }
+
+        if (isset($filters['subject_id'])) {
+            $query->where('subject_id', $filters['subject_id']);
+        }
+
+        if (isset($filters['education_level_id'])) {
+            $query->where('education_level_id', $filters['education_level_id']);
+        }
+
         if (\Illuminate\Support\Facades\Auth::check()) {
-            $query->withExists(['favorites as is_favorited' => function($q) {
-                $q->where('user_id', \Illuminate\Support\Facades\Auth::id());
+            $userId = \Illuminate\Support\Facades\Auth::id();
+            $query->withExists(['favorites as is_favorited' => function($q) use ($userId) {
+                $q->where('user_id', $userId);
+            }]);
+            $query->withExists(['likes as is_liked' => function($q) use ($userId) {
+                $q->where('user_id', $userId);
             }]);
         }
 
-        return $query->with(['user', 'category', 'university'])
-            ->withCount(['comments', 'favorites'])
-            ->get();
+        return $query->with(['user', 'category', 'university', 'department', 'educationLevel', 'subject', 'major'])
+            ->withCount(['comments', 'favorites', 'likes'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($filters['per_page'] ?? 12);
     }
 }

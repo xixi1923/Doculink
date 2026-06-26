@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Bell, MessageSquare } from 'lucide-react'
+import { Bell, MessageSquare, Search } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import CreateMenu from './CreateMenu'
 import UserDropdown from './UserDropdown'
 import ThemeToggle from './ThemeToggle'
+import SearchModal from './SearchModal'
 import { getUnreadNotificationsCount } from '@/api/notificationsApi'
 import { getUnreadMessagesCount } from '@/api/authApi'
 
@@ -13,13 +14,22 @@ export default function Navbar() {
   const { token } = useAuthStore()
   const [unreadCount, setUnreadCount] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   useEffect(() => {
     if (token) {
       fetchUnreadCounts()
+
+      // Listen for local notification events to update count immediately
+      const handleUpdate = () => fetchUnreadCounts();
+      window.addEventListener('notification-marked-read', handleUpdate);
+
       // Poll every minute
       const interval = setInterval(fetchUnreadCounts, 60000)
-      return () => clearInterval(interval)
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('notification-marked-read', handleUpdate);
+      }
     }
   }, [token])
 
@@ -73,6 +83,14 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-4 md:gap-8 flex-shrink-0">
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className="text-gray-400 dark:text-gray-500 hover:text-primary p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all"
+            title="Search Documents"
+          >
+            <Search size={22} />
+          </button>
+
           <ThemeToggle />
 
           {token ? (
@@ -120,6 +138,7 @@ export default function Navbar() {
           )}
         </div>
       </div>
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </nav>
   )
 }

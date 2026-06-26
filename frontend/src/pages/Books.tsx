@@ -229,10 +229,10 @@ export default function Books(): React.JSX.Element {
               <div className="flex items-center justify-between mb-8 px-1">
                 <div>
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight">Resource Library</h2>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1 flex items-center gap-2">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1 flex items-center gap-2">
                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                     Synchronized Assets: {books.length} Nodes Discovery
-                  </p>
+                  </div>
                 </div>
               </div>
 

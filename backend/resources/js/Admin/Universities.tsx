@@ -218,7 +218,7 @@ export default function AdminUniversities() {
             <thead>
               <tr className="bg-slate-900/80 border-b border-slate-800 text-[10px] font-black text-slate-600 uppercase tracking-[0.2em]">
                 <th className="px-10 py-5">Mainframe Identity</th>
-                <th className="px-10 py-5">Registry Code</th>
+                <th className="px-10 py-5">Short Name</th>
                 <th className="px-10 py-5">Location Hub</th>
                 <th className="px-10 py-5">Vault Access</th>
                 <th className="px-10 py-5 text-right pr-12">Actions</th>
@@ -406,7 +406,7 @@ export default function AdminUniversities() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Registry Code</label>
+                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Short Name</label>
                            <div className="relative">
                               <Hash className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-700" size={14} />
                               <input
@@ -414,7 +414,7 @@ export default function AdminUniversities() {
                                  value={formData.short_name}
                                  onChange={e => setFormData({...formData, short_name: e.target.value.toUpperCase()})}
                                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-6 py-4 text-[13px] font-black text-white outline-none focus:border-emerald-500/50 transition-all shadow-inner"
-                                 placeholder="RUT-01"
+                                 placeholder="RUPP"
                               />
                            </div>
                         </div>

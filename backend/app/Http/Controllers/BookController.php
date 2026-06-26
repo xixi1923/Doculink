@@ -18,7 +18,7 @@ class BookController extends Controller
         $query = Book::with('category', 'uploader');
 
         // If not admin, only show published
-        if (!auth()->user() || auth()->user()->role !== 'admin') {
+        if (!auth()->user() || !auth()->user()->hasRole('admin')) {
             $query->where('status', 'published');
         }
 
@@ -71,7 +71,7 @@ class BookController extends Controller
         }
 
         // Related books
-        $related = Book::where('category_id', $book->category_id)
+        $related = Book::with('category')->where('category_id', $book->category_id)
             ->where('id', '!=', $book->id)
             ->where('status', 'published')
             ->limit(4)

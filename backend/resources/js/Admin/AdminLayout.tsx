@@ -24,7 +24,7 @@ const navItems = [
     { label: 'Institutions', path: '/admin/universities', icon: Building2 },
     { label: 'Categories', path: '/admin/categories', icon: Layers },
     { label: 'Subscriptions', path: '/admin/subscriptions', icon: CreditCard },
-    { label: 'Archive Logs', path: '/admin/logs', icon: Database },
+
   ]}
 ]
 

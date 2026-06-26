@@ -21,6 +21,8 @@ class User extends Authenticatable
         'avatar',
         'bio',
         'university_id',
+        'department_id',
+        'education_level_id',
         'major',
         'school',
         'affiliation',
@@ -54,6 +56,16 @@ class User extends Authenticatable
     public function university()
     {
         return $this->belongsTo(University::class);
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function educationLevel()
+    {
+        return $this->belongsTo(EducationLevel::class);
     }
 
     public function documents()
@@ -94,6 +106,21 @@ class User extends Authenticatable
     public function likes()
     {
         return $this->hasMany(Like::class);
+    }
+
+    public function searchHistory()
+    {
+        return $this->hasMany(SearchHistory::class);
+    }
+
+    public function documentActivities()
+    {
+        return $this->hasMany(UserDocumentActivity::class);
+    }
+
+    public function savedDocuments()
+    {
+        return $this->hasMany(SavedDocument::class);
     }
 
     public function followers()

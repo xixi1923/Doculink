@@ -41,13 +41,15 @@ class NotificationController extends Controller
 
         return response()->json([
             'message' => 'Notification marked as read',
-            'notification' => $notification
+            'notification' => $notification,
+            'unread_count' => Auth::user()->notifications()->whereNull('read_at')->count()
         ]);
     }
 
     public function markAllAsRead(Request $request)
     {
-        $query = Auth::user()->notifications();
+        $user = Auth::user();
+        $query = $user->notifications();
 
         if (Schema::hasColumn('notifications', 'is_read')) {
             $query->where('is_read', false)->update(['is_read' => true]);
@@ -55,7 +57,10 @@ class NotificationController extends Controller
             $query->whereNull('read_at')->update(['read_at' => now()]);
         }
 
-        return response()->json(['message' => 'All notifications marked as read']);
+        return response()->json([
+            'message' => 'All notifications marked as read',
+            'unread_count' => 0
+        ]);
     }
 
     public function destroy($id)
